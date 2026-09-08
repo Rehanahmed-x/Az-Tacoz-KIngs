@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0D0D12">
+  <title>Az Tacos King | Bella - AI Voice & Chat Order Assistant</title>
+  <meta name="description" content="Order online or call Bella, the AI voice assistant for Az Tacos King / Birria Kingz ATK on 2030 W Camelback Rd, Phoenix, AZ. Supporting authentic US regional English accents!">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Main Viewport Container -->
+  <main class="app-viewport">
+
+    <!-- =========================================
+         CALL SCREEN OVERLAY (Appears First)
+         ========================================= -->
+    <div id="call-screen-overlay" class="call-screen-overlay">
+      <div class="call-restaurant-badge">
+        <span>🌮 Az Tacos King • Birria Kingz ATK</span>
+      </div>
+
+      <div class="caller-avatar-stage">
+        <div class="call-ripple"></div>
+        <div class="call-ripple"></div>
+        <div class="call-ripple"></div>
+        <div class="caller-avatar-circle">
+          <span>👩‍🍳</span>
+        </div>
+      </div>
+
+      <div class="call-screen-info">
+        <h2>Call Bella</h2>
+        <p class="caller-title">AI Voice & Phone Order Specialist</p>
+        <p class="caller-line">Store Phone: (480) 410-1914 • 2030 W Camelback Rd, Phoenix</p>
+      </div>
+
+      <!-- Accent Selection Prior to Calling -->
+      <div class="call-screen-accent-picker">
+        <label for="precall-accent-select">Select Bella's US English Accent:</label>
+        <select id="precall-accent-select">
+          <option value="chicano" selected>🌵 Southwestern / Chicano (Phoenix Local Street Vibe)</option>
+          <option value="standard">🇺🇸 General American (Standard US Assistant)</option>
+          <option value="southern">🤠 Southern Drawl (Texas / Deep South)</option>
+          <option value="newyork">🗽 New York / East Coast (Fast & Energetic)</option>
+          <option value="california">🌴 California Chill (West Coast Foodie)</option>
+          <option value="midwest">🌾 Midwestern Friendly (Warm & Courteous)</option>
+        </select>
+      </div>
+
+      <div class="call-screen-actions">
+        <button id="btn-start-call" class="btn-start-call" title="Call Bella Now">
+          <span style="font-size: 20px;">📞</span>
+          <span id="call-btn-text">Call Bella to Order</span>
+        </button>
+
+        <button id="btn-skip-call" class="btn-skip-to-chat" title="Skip calling and use chat directly">
+          <span>💬 Or skip calling and order via text chat →</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active In-Call Status Bar (Shown during phone call) -->
+    <div id="in-call-bar" class="in-call-bar" style="display: none;">
+      <div class="in-call-status-group">
+        <span class="in-call-dot"></span>
+        <span style="font-weight: 700;">Connected to Bella</span>
+        <span id="in-call-timer" class="in-call-timer">00:00</span>
+        <div class="soundwave-indicator active" style="margin-left: 6px;">
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+      <button id="btn-end-call" class="btn-end-call" title="End Phone Call">
+        <span>🔴</span>
+        <span>End Call</span>
+      </button>
+    </div>
+
+    <!-- Top Brand Header Bar -->
+    <header class="brand-header">
+      <div class="brand-meta">
+        <div class="brand-badge-logo" title="Az Tacos King / Birria Kingz">🌮</div>
+        <div class="brand-info">
+          <h1>Az Tacos <span class="highlight">King</span></h1>
+          <div class="brand-status-row">
+            <span class="live-pulse-dot"></span>
+            <span>Open • 2030 W Camelback Rd, Phoenix</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-trigger-call" class="icon-btn call-bella-top-btn" title="Call Bella (Voice Ordering)">
+          <span>📞</span>
+          <span>Call Bella</span>
+        </button>
+        <button id="view-menu-header-btn" class="icon-btn" title="View Full Menu">
+          <span>📋</span>
+          <span>Menu</span>
+        </button>
+        <button id="cart-toggle-btn" class="icon-btn cart-toggle-btn" title="View Your Bag">
+          <span>🛒</span>
+          <span>Cart</span>
+          <span id="cart-badge" class="cart-badge">0</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Localhost File Warning Banner -->
+    <div id="file-protocol-warning" class="file-warning-banner" style="display: none;">
+      ⚡ <strong>Client Demo Tip:</strong> Open via <strong>Start_Az_Tacos_King.bat</strong> on your Desktop for 100% persistent microphone permissions without browser re-prompts!
+    </div>
+
+    <!-- Client Demo Shortcuts Row -->
+    <div class="client-demo-bar" aria-label="One-tap Client Presentation Shortcuts">
+      <span class="demo-tag">🎯 Client Demo:</span>
+      <button class="demo-chip" data-speak="Can I get 3 Quesatacos and a Consomé">🌮 "3 Quesatacos & Consomé"</button>
+      <button class="demo-chip" data-speak="I want 1 Birria Ramen and King Fries">🍜 "Birria Ramen & King Fries"</button>
+      <button class="demo-chip" data-speak="Give me a 50 Dollar Taco Box and Horchata">📦 "$50 Taco Box & Horchata"</button>
+      <button class="demo-chip" data-speak="Quiero tres quesatacos sin cebolla">🇲🇽 "3 Quesatacos sin cebolla"</button>
+      <button class="demo-chip" data-speak="That is all, ready to checkout">💳 "Ready to checkout"</button>
+    </div>
+
+    <!-- Bella AI Stage & US Accent Switcher -->
+    <section class="bella-stage">
+      <div class="bella-profile-row">
+        <div class="bella-avatar-meta">
+          <div id="bella-avatar-ring" class="bella-avatar-ring">
+            <span>👩‍🍳</span>
+          </div>
+          <div class="bella-title-text">
+            <h2>
+              <span>Bella</span>
+              <div id="soundwave-indicator" class="soundwave-indicator" title="Speaking">
+                <span></span><span></span><span></span><span></span>
+              </div>
+            </h2>
+            <p id="bella-subtext">Southwestern / Chicano • Warm, bilingual touches & street taco vibes</p>
+          </div>
+        </div>
+
+        <div class="voice-controls">
+          <button id="mute-btn" class="mute-btn" title="Toggle Bella's Voice Output">
+            🔊 Voice Active
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Voice Status Banner -->
+      <div id="live-voice-badge" class="live-voice-badge" style="display: none;">
+        <span class="live-voice-dot"></span>
+        <span id="live-voice-status-text">Bella is listening... Speak anytime!</span>
+      </div>
+
+      <!-- USA Regional English Accent Switcher Strip -->
+      <div class="accent-selector-strip" aria-label="Select US English Accent Dialect">
+        <button class="accent-pill active" data-accent="chicano" title="Phoenix Local / Southwestern">
+          <span>🌵</span>
+          <span>Southwestern / Chicano</span>
+        </button>
+        <button class="accent-pill" data-accent="standard" title="General American Standard">
+          <span>🇺🇸</span>
+          <span>General American</span>
+        </button>
+        <button class="accent-pill" data-accent="southern" title="Southern US / Texas Drawl">
+          <span>🤠</span>
+          <span>Southern Drawl</span>
+        </button>
+        <button class="accent-pill" data-accent="newyork" title="New York / East Coast">
+          <span>🗽</span>
+          <span>New York / East Coast</span>
+        </button>
+        <button class="accent-pill" data-accent="california" title="California Chill">
+          <span>🌴</span>
+          <span>California Chill</span>
+        </button>
+        <button class="accent-pill" data-accent="midwest" title="Midwestern Friendly">
+          <span>🌾</span>
+          <span>Midwestern</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Chat Message Log Stream -->
+    <section id="chat-stream" class="chat-stream-container" aria-live="polite">
+      <!-- Dynamic conversation bubbles inserted here -->
+    </section>
+
+    <!-- Quick Action Suggestion Chips -->
+    <div class="quick-chips-wrapper" aria-label="Suggested Ordering Prompts">
+      <button class="quick-chip" data-text="I'd like the 3 Quesatacos Combo with Consomé & Agua">
+        🌮 3 Quesataco Combo ($13.99)
+      </button>
+      <button class="quick-chip" data-text="Can I get the Birria Ramen?">
+        🍜 Birria Ramen ($15.00)
+      </button>
+      <button class="quick-chip" data-text="Add the $50 Taco Box for the family">
+        👑 $50 Taco Box (22 Tacos)
+      </button>
+      <button class="quick-chip" data-text="Can I get an order of King Fries?">
+        🍟 King Fries ($15.00)
+      </button>
+      <button class="quick-chip" data-text="King Birria Pizza with extra consomé">
+        🍕 King Birria Pizza ($40.00)
+      </button>
+      <button class="quick-chip" data-text="Do you have any keto options?">
+        🥑 Keto Tacos?
+      </button>
+      <button class="quick-chip" data-text="What's your best seller?">
+        ⭐ What's your best seller?
+      </button>
+      <button class="quick-chip" data-text="Review my order">
+        🛒 Review My Order
+      </button>
+      <button class="quick-chip" data-text="I am ready to checkout">
+        💳 Checkout Now
+      </button>
+    </div>
+
+    <!-- Live Speech Transcript Toast -->
+    <div id="live-speech-toast" class="live-speech-toast" style="display: none;">
+      <span style="animation: pulse-green 1.5s infinite;">🎙️</span>
+      <span id="live-speech-text">Listening... Speak now</span>
+    </div>
+
+    <!-- Mic Error Notification Banner -->
+    <div id="mic-error-toast" class="mic-error-toast" style="display: none;">
+      <span id="mic-error-text">Microphone access needed</span>
+      <button id="mic-retry-btn">Grant / Retry</button>
+      <button id="mic-dismiss-btn" style="background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.4); padding: 2px 6px;">✕</button>
+    </div>
+
+    <!-- Sticky Bottom Input Arena -->
+    <footer class="chat-input-arena">
+      <button id="mic-btn" class="mic-action-btn" title="Click to Speak Your Order (Voice Recognition)">
+        🎤
+      </button>
+
+      <div class="input-field-wrapper">
+        <input 
+          type="text" 
+          id="chat-input" 
+          class="chat-input" 
+          placeholder="Ask Bella anything or say: 'Add 3 quesatacos'..." 
+          autocomplete="off"
+        >
+        <button id="send-btn" class="send-action-btn" title="Send Message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Slide-Out Order Cart Drawer -->
+    <div id="cart-drawer-overlay" class="cart-drawer-overlay"></div>
+    <aside id="cart-drawer" class="cart-drawer" aria-label="Order Cart">
+      <div class="drawer-header">
+        <h3>
+          <span>🛒 Your Order</span>
+        </h3>
+        <button id="cart-close-btn" class="drawer-close-btn" title="Close Cart">✕</button>
+      </div>
+
+      <!-- Fulfillment Switcher -->
+      <div class="fulfillment-toggle-row">
+        <button class="fulfillment-btn active" data-mode="pickup">
+          <span>🛍️ Pickup</span>
+          <span style="font-size: 10px; color: var(--gold);">(Free • Ready in 15m)</span>
+        </button>
+        <button class="fulfillment-btn" data-mode="delivery">
+          <span>🚗 Delivery</span>
+          <span style="font-size: 10px;">(+$4.99 Fee)</span>
+        </button>
+      </div>
+
+      <!-- Itemized Items List -->
+      <div id="drawer-items-list" class="drawer-items-list">
+        <!-- Dynamic cart item cards inserted here -->
+      </div>
+
+      <!-- Cart Drawer Footer & Totals -->
+      <div class="drawer-footer">
+        <!-- Tip Selector -->
+        <div class="tip-selector-row">
+          <span class="tip-label">Add Tip:</span>
+          <button class="tip-pill" data-tip="10">10%</button>
+          <button class="tip-pill active" data-tip="15">15%</button>
+          <button class="tip-pill" data-tip="18">18%</button>
+          <button class="tip-pill" data-tip="20">20%</button>
+          <button class="tip-pill" data-tip="0">No Tip</button>
+        </div>
+
+        <!-- Cost Breakdown -->
+        <div class="totals-breakdown">
+          <div class="total-line">
+            <span>Subtotal</span>
+            <span id="subtotal-amount">$0.00</span>
+          </div>
+          <div class="total-line">
+            <span>AZ Sales Tax (8.6%)</span>
+            <span id="tax-amount">$0.00</span>
+          </div>
+          <div class="total-line">
+            <span>Tip</span>
+            <span id="tip-amount">$0.00</span>
+          </div>
+          <div class="total-line grand-total">
+            <span>Total</span>
+            <span id="grand-total-amount" class="amount">$0.00</span>
+          </div>
+        </div>
+
+        <!-- Checkout Button -->
+        <button id="checkout-btn" class="checkout-btn">
+          <span>Place Order with Bella</span>
+          <span>→</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Item Customizer Modal -->
+    <div id="customize-modal" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="custom-item-name">Customize Item</h3>
+          <button id="customize-close-btn" class="drawer-close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="color: var(--text-muted); font-size: 13px;">Item Price:</span>
+            <span id="custom-item-price" style="color: var(--gold); font-weight: 800; font-size: 16px;">$0.00</span>
+          </div>
+
+          <!-- Quantity input -->
+          <div>
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Quantity:</label>
+            <input type="number" id="custom-qty-input" value="1" min="1" max="50" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); color: #fff; padding: 8px 12px; border-radius: var(--radius-sm); width: 80px; font-size: 14px;">
+          </div>
+
+          <!-- Meat Choice -->
+          <div id="custom-meat-group">
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Select Meat / Protein:</label>
+            <select id="custom-meat-select" style="width: 100%; background: #222234; border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: var(--radius-sm); font-size: 13px;">
+              <!-- Options populated by JS -->
+            </select>
+          </div>
+
+          <!-- Agua Choice -->
+          <div id="custom-agua-group" style="display: none;">
+            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Select Agua Fresca Drink:</label>
+            <select id="custom-agua-select" style="width: 100%; background: #222234; border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: var(--radius-sm); font-size: 13px;">
+              <!-- Options populated by JS -->
+            </select>
+          </div>
+
+          <!-- Extra Consomé Checkbox -->
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+            <input type="checkbox" id="custom-extra-consome-check" style="width: 16px; height: 16px; accent-color: var(--primary);">
+            <label for="custom-extra-consome-check" style="font-size: 13px; cursor: pointer;">Add Extra 8 oz Dipping Consomé (+$3.00)</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="custom-confirm-btn" class="btn-primary" style="width: 100%;">Add to Cart</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full Menu Modal -->
+    <div id="full-menu-modal" class="modal-overlay">
+      <div class="modal-card" style="max-width: 600px;">
+        <div class="modal-header">
+          <h3>📋 Full Official Menu • Az Tacos King</h3>
+          <button id="full-menu-close-btn" class="drawer-close-btn">✕</button>
+        </div>
+        <div class="modal-body" id="full-menu-list">
+          <!-- Categories and items rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Receipt / Confirmation Modal -->
+    <div id="receipt-modal" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>🎉 Order Received!</h3>
+          <button id="receipt-close-btn" class="drawer-close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="receipt-header">
+            <div class="receipt-icon">🔥</div>
+            <div id="receipt-order-id" class="receipt-order-id">#ATK-1000</div>
+            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">Sent straight to the grill at Az Tacos King!</p>
+            <div class="receipt-prep-time">⏱️ Estimated Prep Time: 15–20 Mins</div>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-dim);" id="receipt-address">
+            Pickup at: 2030 W Camelback Rd, Phoenix, AZ 85015-3441
+          </div>
+
+          <div id="receipt-items-container" class="receipt-items-list">
+            <!-- Itemized lines inserted here -->
+          </div>
+
+          <div class="totals-breakdown" style="border-top: 1px dashed var(--border-subtle); padding-top: 8px;">
+            <div class="total-line">
+              <span>Subtotal</span>
+              <span id="receipt-subtotal">$0.00</span>
+            </div>
+            <div class="total-line">
+              <span>AZ Sales Tax (8.6%)</span>
+              <span id="receipt-tax">$0.00</span>
+            </div>
+            <div class="total-line">
+              <span>Tip</span>
+              <span id="receipt-tip">$0.00</span>
+            </div>
+            <div class="total-line grand-total">
+              <span>Total Paid</span>
+              <span id="receipt-total" class="amount">$0.00</span>
+            </div>
+          </div>
+
+          <!-- Quick Action Links -->
+          <div class="receipt-links-group">
+            <a href="https://birriakingzatk.square.site/?location_id=LP862J1T4DZXK&fulfillment=PICKUP" target="_blank" rel="noopener" class="btn-primary">
+              <span>💳 Open Client's Official Square Checkout</span>
+              <span>↗</span>
+            </a>
+            <a href="https://maps.google.com/?q=2030+W+Camelback+Rd,+Phoenix,+AZ+85015" target="_blank" rel="noopener" class="btn-secondary">
+              <span>📍 Directions to 2030 W Camelback Rd, Phoenix</span>
+            </a>
+            <a href="tel:+14804101914" class="btn-secondary">
+              <span>📞 Call Kitchen: (480) 410-1914</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/menuData.js"></script>
+  <script src="js/accents.js"></script>
+  <script src="js/orderEngine.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
