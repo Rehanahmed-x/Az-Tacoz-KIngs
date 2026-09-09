@@ -14,6 +14,9 @@ class VoiceController {
     this.analyser = null;
     this.silenceTimer = null;
     this.transcriptBuffer = "";
+    this.currentSpokenText = "";
+    this.speakStartTime = 0;
+    this.allowBargeIn = true;
     this.onStateChange = null;
     this.onInterimTranscript = null;
     this.onSpeechResult = null;
@@ -35,7 +38,10 @@ class VoiceController {
         "Google US English",
         "Samantha",
         "Victoria",
-        "Zira"
+        "Zira",
+        "Jenny",
+        "Aria",
+        "Natural"
       ];
 
       for (const name of preferred) {
@@ -91,12 +97,21 @@ class VoiceController {
 
       const buffer = new Uint8Array(this.analyser.frequencyBinCount);
       const pollAudio = () => {
-        if (this.isListening && !this.isSpeaking && this.analyser) {
+        if (this.isListening && this.analyser) {
           this.analyser.getByteFrequencyData(buffer);
           let sum = 0;
           for (let i = 0; i < buffer.length; i++) sum += buffer[i];
           const avg = sum / buffer.length;
           const level = Math.min(1, avg / 45);
+
+          // Audio level barge-in: If user speaks loudly while Bella is speaking, cut speech immediately!
+          if (this.isSpeaking && level > 0.28 && (Date.now() - this.speakStartTime > 400)) {
+            this.stopSpeaking();
+            if (this.onStateChange) {
+              this.onStateChange({ isSpeaking: false, isInterrupted: true, isListening: true });
+            }
+          }
+
           if (this.onStateChange) this.onStateChange({ audioLevel: level });
         }
         requestAnimationFrame(pollAudio);
@@ -105,21 +120,21 @@ class VoiceController {
     } catch (e) {}
   }
 
-  safeRestartRecognition(delay = 200) {
+  safeRestartRecognition(delay = 150) {
     if (this.restartTimer) clearTimeout(this.restartTimer);
     this.restartTimer = setTimeout(() => {
-      if (!this.shouldBeListening || this.isSpeaking || this.isListening) return;
+      if (!this.shouldBeListening || this.isListening) return;
       try {
         this.recognition.start();
       } catch (e) {
-        if (this.shouldBeListening && !this.isSpeaking) {
+        if (this.shouldBeListening) {
           setTimeout(() => {
             try {
-              if (this.shouldBeListening && !this.isSpeaking && !this.isListening) {
+              if (this.shouldBeListening && !this.isListening) {
                 this.recognition.start();
               }
             } catch (err) {}
-          }, 350);
+          }, 300);
         }
       }
     }, delay);
@@ -147,14 +162,13 @@ class VoiceController {
       this.isListening = false;
       if (this.onStateChange) this.onStateChange({ isListening: false });
 
-      // Automatically restart if shouldBeListening is active and Bella is not speaking!
-      if (this.shouldBeListening && !this.isSpeaking) {
-        this.safeRestartRecognition(150);
+      // Automatically restart whenever shouldBeListening is active, so listening never dies!
+      if (this.shouldBeListening) {
+        this.safeRestartRecognition(120);
       }
     };
 
     this.recognition.onerror = (event) => {
-      // Ignorable events like no-speech shouldn't break the session
       if (event.error === "no-speech") return;
 
       console.warn("Speech recognition notice:", event.error);
@@ -173,9 +187,6 @@ class VoiceController {
     };
 
     this.recognition.onresult = (event) => {
-      // Ignore audio while Bella is speaking to prevent echo
-      if (this.isSpeaking) return;
-
       let interim = "";
       let finalStr = "";
 
@@ -185,6 +196,29 @@ class VoiceController {
           finalStr += transcript;
         } else {
           interim += transcript;
+        }
+      }
+
+      const incomingText = (finalStr || interim).trim();
+      if (!incomingText) return;
+
+      // ⚡ ACTIVE VOICE BARGE-IN:
+      // If user interrupts the bot during conversation, immediately stop Bella's voice!
+      if (this.isSpeaking && this.allowBargeIn) {
+        const timeSinceSpeak = Date.now() - this.speakStartTime;
+        const incomingLower = incomingText.toLowerCase();
+        const isEcho = this.currentSpokenText && 
+                       this.currentSpokenText.includes(incomingLower) && 
+                       timeSinceSpeak < 600;
+
+        if (!isEcho && incomingText.length >= 2) {
+          console.log("⚡ Voice Barge-In: User interrupted Bella with:", incomingText);
+          this.stopSpeaking();
+          if (this.onStateChange) {
+            this.onStateChange({ isSpeaking: false, isInterrupted: true, isListening: true });
+          }
+        } else {
+          return; // Ignore bot's own speaker echo
         }
       }
 
@@ -199,7 +233,7 @@ class VoiceController {
       }
 
       // Silence Detection Debounce:
-      // When user stops speaking for 1.1s, automatically submit the whole sentence!
+      // When user finishes speaking (950ms pause), submit the full sentence!
       clearTimeout(this.silenceTimer);
       this.silenceTimer = setTimeout(() => {
         const fullPrompt = (this.transcriptBuffer || interim).trim();
@@ -209,16 +243,17 @@ class VoiceController {
             this.onSpeechResult(fullPrompt);
           }
         }
-      }, 1100);
+      }, 950);
     };
   }
 
   // Phonetic smoothing for natural TTS
-  enhancePhonetics(text, accentId = "chicano") {
+  enhancePhonetics(text, accentId = "standard") {
     let clean = text
       .replace(/[\u{1F600}-\u{1F6FF}|[\u{1F300}-\u{1F5FF}|[\u{1F680}-\u{1F6FF}|[\u{2600}-\u{26FF}]/gu, '')
       .replace(/[*_~`#]/g, '')
-      .replace(/\$\s?([0-9]+(?:\.[0-9]{2})?)/g, '$1 dollars')
+      .replace(/\$\s?([0-9]+)\.([0-9]{2})/g, '$1 dollars and $2 cents')
+      .replace(/\$\s?([0-9]+)/g, '$1 dollars')
       .replace(/\b8\s?oz\b/gi, '8 ounce')
       .replace(/\b16\s?oz\b/gi, '16 ounce');
 
@@ -229,6 +264,7 @@ class VoiceController {
       .replace(/\bconsome\b/gi, "con-so-may")
       .replace(/\bhorchata\b/gi, "or-chah-tah")
       .replace(/\btaquitos\b/gi, "tah-kee-tohs")
+      .replace(/\bbirria\b/gi, "beer-ee-ah")
       .replace(/\bórale\b/gi, "oh-rah-lay")
       .replace(/\bprovecho\b/gi, "pro-veh-choh");
 
@@ -241,14 +277,15 @@ class VoiceController {
       return;
     }
 
-    const accentId = accentObj ? accentObj.id : "chicano";
+    const accentId = accentObj ? accentObj.id : "standard";
     const cleanText = this.enhancePhonetics(text, accentId);
     if (!cleanText) {
       if (onDoneCallback) onDoneCallback();
       return;
     }
 
-    // Set speaking flag to mute recognition input
+    this.currentSpokenText = cleanText.toLowerCase();
+    this.speakStartTime = Date.now();
     this.isSpeaking = true;
     clearTimeout(this.silenceTimer);
     this.transcriptBuffer = "";
@@ -262,14 +299,14 @@ class VoiceController {
       const esVoice = voices.find(v => v.lang.startsWith("es-MX") || v.lang.startsWith("es-US") || v.lang.startsWith("es"));
       if (esVoice) utterance.voice = esVoice;
       utterance.lang = "es-MX";
-      utterance.rate = 1.0;
-      utterance.pitch = 1.05;
+      utterance.rate = 0.98;
+      utterance.pitch = 1.0;
     } else {
       if (this.selectedVoice) {
         utterance.voice = this.selectedVoice;
       }
       if (accentObj && accentObj.tts) {
-        utterance.rate = accentObj.tts.rate || 1.0;
+        utterance.rate = accentObj.tts.rate || 0.98;
         utterance.pitch = accentObj.tts.pitch || 1.0;
         utterance.lang = accentObj.tts.lang || "en-US";
       }
@@ -277,6 +314,7 @@ class VoiceController {
 
     utterance.onstart = () => {
       this.isSpeaking = true;
+      this.speakStartTime = Date.now();
       if (this.onStateChange) this.onStateChange({ isSpeaking: true });
     };
 
@@ -289,11 +327,11 @@ class VoiceController {
       if (watchdogTimer) clearTimeout(watchdogTimer);
 
       this.isSpeaking = false;
+      this.currentSpokenText = "";
       this.transcriptBuffer = "";
       clearTimeout(this.silenceTimer);
       if (this.onStateChange) this.onStateChange({ isSpeaking: false });
 
-      // If continuous listening is enabled, ensure recognition is running and ready for next turn!
       if (this.shouldBeListening) {
         if (!this.isListening) {
           this.safeRestartRecognition(100);
@@ -308,8 +346,12 @@ class VoiceController {
     utterance.onend = handleSpeechEnd;
     utterance.onerror = handleSpeechEnd;
 
-    // Watchdog: In case Chromium speech synthesis drops the onend callback on Windows
-    const maxDurationMs = Math.max(3000, cleanText.length * 85);
+    // Keep recognition active during speech for instant barge-in interruption!
+    if (this.shouldBeListening && !this.isListening) {
+      this.safeRestartRecognition(60);
+    }
+
+    const maxDurationMs = Math.max(3000, cleanText.length * 90);
     watchdogTimer = setTimeout(() => {
       if (!speechEnded) {
         handleSpeechEnd();
@@ -323,6 +365,7 @@ class VoiceController {
     if (this.synth) {
       this.synth.cancel();
       this.isSpeaking = false;
+      this.currentSpokenText = "";
       if (this.onStateChange) this.onStateChange({ isSpeaking: false });
     }
   }

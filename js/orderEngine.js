@@ -10,6 +10,8 @@ class OrderEngine {
     this.customTip = null;
     this.orderCounter = Math.floor(1000 + Math.random() * 9000);
     this.listeners = [];
+    this.lastUpsellItem = null;
+    this.lastSpokenResponse = "";
   }
 
   onChange(callback) {
@@ -46,6 +48,20 @@ class OrderEngine {
   removeItem(cartItemId) {
     this.cart = this.cart.filter(item => item.id !== cartItemId);
     this.notify();
+  }
+
+  removeItemByName(keyword) {
+    const kw = keyword.toLowerCase();
+    const index = this.cart.findIndex(entry => 
+      entry.menuItem.name.toLowerCase().includes(kw) ||
+      entry.menuItem.id.toLowerCase().includes(kw)
+    );
+    if (index > -1) {
+      const removed = this.cart.splice(index, 1)[0];
+      this.notify();
+      return removed;
+    }
+    return null;
   }
 
   updateQuantity(cartItemId, newQty) {
@@ -115,7 +131,7 @@ class OrderEngine {
 
   detectLanguage(text) {
     const lower = text.toLowerCase();
-    if (/\b(hola|por favor|quiero|dame|ordenar|tacos|quesataco|con todo|sin|cebolla|cilantro|cuenta|llevar|domicilio|cuánto|gracias|buenos días|buenas tardes)\b/i.test(lower)) {
+    if (/\b(hola|por favor|quiero|dame|ordenar|tacos|quesataco|con todo|sin|cebolla|cilantro|cuenta|llevar|domicilio|cuánto|gracias|buenos días|buenas tardes|sí|claro)\b/i.test(lower)) {
       return "es";
     }
     if (/\b(bonjour|s'il vous plaît|je voudrais|merci|combien|l'addition)\b/i.test(lower)) {
@@ -136,20 +152,101 @@ class OrderEngine {
     return "en";
   }
 
+  // Multi-Accent & Phonetic Normalizer
+  normalizeSpokenInput(text) {
+    let s = text.toLowerCase()
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ")
+      .replace(/\s+/g, " ");
+
+    // Normalize speech-to-text sound-alike mishearings:
+    // Quesatacos (all regional phonetic variations)
+    s = s.replace(/\b(case of tacos|case uh tacos|case at tacos|casa tacos|kiss uh taco|kiss of taco|quesa tacos|quesatacos|quesa taco|quesataco|qusataco|quesabirria|quesabirrias|quesotaco|quesotacos|kay-sa tacos|kay sa tacos|cheese taco|cheese tacos)\b/g, "quesataco");
+
+    // Consomé & Dipping Broth
+    s = s.replace(/\b(dipping broth|dipping soup|beef broth|caldo de birria|caldo|con some|consume|conso may|can so may|conzome|consomme|consome|consomé)\b/g, "consome cup");
+
+    // Birria
+    s = s.replace(/\b(beer ya|beer yeah|beeria|barria|berea|bidi a)\b/g, "birria");
+
+    // Birria Ramen
+    s = s.replace(/\b(birria noodles|noodle soup|ramin|roman|raymond)\b/g, "birria ramen");
+
+    // Horchata
+    s = s.replace(/\b(or chata|orchata|our chata|whore chata|rice drink|rice milk)\b/g, "horchata");
+
+    // Jarritos
+    s = s.replace(/\b(harritos|jaritos|ritos|mexican soda)\b/g, "jarritos");
+
+    // $50 Taco Box
+    s = s.replace(/\b(50 dollar taco box|fifty dollar taco box|fifty dollar box|50 dollar box|fifty box|50 box|family box|party box|caja familiar)\b/g, "$50 taco box");
+
+    // King Fries
+    s = s.replace(/\b(loaded fries|birria fries|cheese fries)\b/g, "king fries");
+
+    // Burro / Burrito
+    s = s.replace(/\b(birria burrito|king burrito|burrito)\b/g, "king burro");
+
+    // Birria Balls
+    s = s.replace(/\b(potato balls deal|potato ball deal|potato balls|potato ball|two birria balls|birria balls deal)\b/g, "birria balls deal");
+
+    return s.trim();
+  }
+
   // Super-Forgiving NLP Parser
   parseUserMessage(userText) {
     const rawText = userText.trim();
-    const text = rawText.toLowerCase();
+    const text = this.normalizeSpokenInput(rawText);
     const lang = this.detectLanguage(rawText);
 
     const result = {
       intent: "unknown",
       lang: lang,
       itemsFound: [],
-      rawText: rawText
+      rawText: rawText,
+      normalizedText: text
     };
 
-    // 1. Checkout Intent
+    // 0. Conversational Upsell Confirmation (Fix for "yes / sure / add it / no thanks")
+    if (this.lastUpsellItem) {
+      if (/\b(yes|yeah|yep|sure|please|go ahead|sounds good|okay|ok|definitely|why not|add it|put it in|sí|si|claro|por favor|por supuesto)\b/i.test(text)) {
+        result.intent = "upsell_confirm";
+        result.upsellItem = this.lastUpsellItem;
+        this.lastUpsellItem = null;
+        return result;
+      }
+      if (/\b(no|nope|nah|no thanks|no thank you|i'm good|im good|pass|skip|dont need|no gracias)\b/i.test(text)) {
+        result.intent = "upsell_decline";
+        this.lastUpsellItem = null;
+        return result;
+      }
+    }
+
+    // 1. Item Removal Intent ("remove the ramen", "take off tacos", "cancel fries")
+    if (/\b(remove|delete|take off|take out|cancel|drop|quitar|eliminar)\b/i.test(text) && !/\b(order|add)\b/i.test(text)) {
+      result.intent = "order_remove";
+      result.removeItemQuery = text.replace(/\b(remove|delete|take off|take out|cancel|drop|quitar|eliminar|the|an|a|my|please)\b/gi, "").trim();
+      return result;
+    }
+
+    // 2. Repeat Request ("repeat", "say that again", "what did you say", "speak slower")
+    if (/\b(repeat|say that again|what did you say|say again|speak slower|speak up|pardon|come again|no te entendí|repite)\b/i.test(text)) {
+      result.intent = "repeat_request";
+      return result;
+    }
+
+    // 3. Fulfillment & Delivery Questions
+    if (/\b(deliver|delivery|do you deliver|a domicilio|tiempo|how long|prep time|ready in|wait time)\b/i.test(text)) {
+      result.intent = "fulfillment_info";
+      return result;
+    }
+
+    // 4. Food & Spice Questions
+    if (/\b(spicy|hot sauce|chili|pico|salsa|picante|pica|halal|pork|beef|meat)\b/i.test(text) && !/\b(order|give|add|want)\b/i.test(text)) {
+      result.intent = "food_info";
+      return result;
+    }
+
+    // 5. Checkout Intent
     if (
       /\b(checkout|place order|finish order|ready to pay|bill|check|done|that's all|thats all|i'm done|im done|la cuenta|pagar|terminar|l'addition)\b/i.test(text) ||
       text === "done" || text === "pay" || text === "pagar"
@@ -158,43 +255,43 @@ class OrderEngine {
       return result;
     }
 
-    // 2. Clear Cart Intent
+    // 6. Clear Cart Intent
     if (/\b(clear cart|start over|cancel order|empty bag|borrar|vaciar)\b/i.test(text)) {
       result.intent = "order_clear";
       return result;
     }
 
-    // 3. View Cart Intent
+    // 7. View Cart Intent
     if (/\b(cart|my order|my bag|total|what did i order|review|ver orden|mi pedido)\b/i.test(text)) {
       result.intent = "view_cart";
       return result;
     }
 
-    // 4. Menu & Category Inquiries
+    // 8. Menu & Category Inquiries
     if (/\b(menu|what do you have|options|specials|menú|qué tienen)\b/i.test(text) && !/\b(order|give|add|want|quiero)\b/i.test(text)) {
       result.intent = "menu_inquiry";
       return result;
     }
 
-    // 5. Recommendations
+    // 9. Recommendations
     if (/\b(recommend|best seller|what is good|popular|favorite|favorito|recomiendas)\b/i.test(text)) {
       result.intent = "recommendations";
       return result;
     }
 
-    // 6. Dietary Questions
+    // 10. Dietary Questions
     if (/\b(keto|carb|diet|gluten|vegetarian|vegan|vegetariano)\b/i.test(text) && !/\b(taco|tacos|order|give)\b/i.test(text)) {
       result.intent = "dietary";
       return result;
     }
 
-    // 7. Store Info & Hours
+    // 11. Store Info & Hours
     if (/\b(where are you|address|location|hours|phone number|dónde están|dirección|horario)\b/i.test(text)) {
       result.intent = "location_info";
       return result;
     }
 
-    // 8. Simple Greeting
+    // 12. Simple Greeting
     if (/^(hi|hello|hey|hola|howdy|sup|bonjour|namaste|good morning)\b/i.test(text) && text.length < 18) {
       result.intent = "greeting";
       return result;

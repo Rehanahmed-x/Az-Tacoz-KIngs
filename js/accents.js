@@ -1,55 +1,22 @@
 // USA Regional English Accents & Voice Dialects with Multilingual Support for Bella AI
 
 const ACCENTS = {
-  chicano: {
-    id: "chicano",
-    name: "Southwestern / Chicano",
-    flag: "🌵",
-    region: "Phoenix, AZ (Local Street Vibe)",
-    tagline: "Warm, bilingual touches & Southwestern street taco hospitality",
-    tts: { rate: 1.0, pitch: 1.03, lang: "en-US" },
-    greetings: [
-      "¡Hola amigo! Welcome to Az Tacos King right here on Camelback! I'm Bella. What can I get cooking for you today, jefe?",
-      "Hey what's up! Welcome to Birria Kingz! Our slow-simmered birria is smelling amazing right now. What are you craving today?",
-      "¡Bienvenidos! Welcome to Az Tacos King! I'm Bella. Ready to take that order with extra flavor!"
-    ],
-    spanishGreeting: "¡Hola! Bienvenidos a Az Tacos King en Camelback Road. Soy Bella, ¿qué le preparamos hoy amigo?",
-    upsellConsome: "Amigo, you gotta have our hot 8 oz dipping consomé with those quesatacos. Want me to add one for just $3?",
-    upsellConsomeSpanish: "¿Desea agregar un vasito de 8 oz de consomé caliente para sopear sus quesatacos por solo $3?",
-    upsellDrink: "And how about an ice-cold Mexican Coke or Agua Fresca (Horchata or Jamaica) to wash that down?",
-    upsellDrinkSpanish: "¿Gusta agregar una Coca-Cola Mexicana de vidrio bien fría o una rica Agua Fresca de Horchata?",
-    orderAffirmation: [
-      "Órale! Added that right to your order!",
-      "You got it amigo, that's gonna be super fire!",
-      "Perfect choice! Fresh off the plancha.",
-      "Added! Anything else for you, jefe?"
-    ],
-    orderAffirmationSpanish: "¡Listo amigo! Ya lo agregué a su orden. ¿Desea algo más?",
-    cartSummaryIntro: "Alright amigo, here's what we got on your ticket so far:",
-    cartSummaryIntroSpanish: "Muy bien amigo, esto es lo que llevamos en su cuenta:",
-    checkoutPrompt: "Ready to wrap this up and send it to the kitchen on Camelback Rd, amigo?",
-    checkoutPromptSpanish: "¿Listo para enviar su orden a la cocina para recoger aquí en Camelback Road?",
-    thanks: "¡Muchas gracias! Your order is being prepared fresh. Provecho!",
-    thanksSpanish: "¡Muchísimas gracias por ordenar con Az Tacos King! Buen provecho.",
-    voiceKeywords: ["amigo", "jefe", "órale", "super fire", "provecho"]
-  },
-
   standard: {
     id: "standard",
-    name: "General American",
+    name: "Crystal Clear (Easy to Understand)",
     flag: "🇺🇸",
-    region: "Standard US",
-    tagline: "Clear, crisp, friendly & professional AI assistant",
-    tts: { rate: 1.0, pitch: 1.0, lang: "en-US" },
+    region: "Standard US (Clear & Articulate)",
+    tagline: "Crisp, natural, clear enunciation & effortless to understand",
+    tts: { rate: 0.97, pitch: 1.0, lang: "en-US" },
     greetings: [
-      "Hello and welcome to Az Tacos King! I'm Bella, your AI ordering assistant. What can I get started for you today?",
+      "Hello and welcome to Az Tacos King on Camelback Road! I'm Bella, your AI ordering assistant. What can I get started for you today?",
       "Hi there! Welcome to Birria Kingz. I'm ready to take your order whenever you're ready!",
-      "Welcome to Az Tacos King on Camelback Road. What delicious birria items can I help you order today?"
+      "Welcome to Az Tacos King! What delicious tacos or birria items can I help you order today?"
     ],
     spanishGreeting: "¡Hola! Bienvenidos a Az Tacos King. Soy Bella, su asistente de pedidos. ¿Qué desea ordenar?",
-    upsellConsome: "Would you like to pair that with our savory 8 oz birria dipping consomé for just $3.00?",
-    upsellConsomeSpanish: "¿Le gustaría agregar un consomé de 8 oz por $3.00?",
-    upsellDrink: "Would you also like to add an ice-cold Mexican glass bottle soda or fresh Agua Fresca?",
+    upsellConsome: "Would you like to pair that with our savory 8 ounce birria dipping broth for just 3 dollars?",
+    upsellConsomeSpanish: "¿Le gustaría agregar un consomé de 8 onzas por 3 dólares para sopear?",
+    upsellDrink: "Would you also like to add an ice-cold Mexican bottle soda or fresh Agua Fresca?",
     upsellDrinkSpanish: "¿Gusta agregar una bebida mexicana bien fría?",
     orderAffirmation: [
       "Great! I've added that to your order.",
@@ -62,9 +29,42 @@ const ACCENTS = {
     cartSummaryIntroSpanish: "Aquí está el resumen de su orden:",
     checkoutPrompt: "Would you like to proceed to checkout and place your order now?",
     checkoutPromptSpanish: "¿Desea proceder a pagar y confirmar su pedido?",
-    thanks: "Thank you for ordering with Az Tacos King! We're preparing your food fresh.",
+    thanks: "Thank you for ordering with Az Tacos King! We are preparing your food fresh.",
     thanksSpanish: "¡Muchas gracias por su compra en Az Tacos King!",
-    voiceKeywords: ["certainly", "absolutely", "perfect", "delicious"]
+    voiceKeywords: ["certainly", "absolutely", "perfect", "delicious", "clear"]
+  },
+
+  chicano: {
+    id: "chicano",
+    name: "Southwestern / Chicano",
+    flag: "🌵",
+    region: "Phoenix, AZ (Local Street Vibe)",
+    tagline: "Warm, bilingual touches & Southwestern street taco hospitality",
+    tts: { rate: 0.98, pitch: 1.01, lang: "en-US" },
+    greetings: [
+      "¡Hola amigo! Welcome to Az Tacos King right here on Camelback! I'm Bella. What can I get cooking for you today, jefe?",
+      "Hey what's up! Welcome to Birria Kingz! Our slow-simmered birria is smelling amazing right now. What are you craving today?",
+      "¡Bienvenidos! Welcome to Az Tacos King! I'm Bella. Ready to take that order with extra flavor!"
+    ],
+    spanishGreeting: "¡Hola! Bienvenidos a Az Tacos King en Camelback Road. Soy Bella, ¿qué le preparamos hoy amigo?",
+    upsellConsome: "Amigo, you gotta have our hot 8 ounce dipping broth with those quesatacos. Want me to add one for just 3 dollars?",
+    upsellConsomeSpanish: "¿Desea agregar un vasito de 8 onzas de consomé caliente para sopear sus quesatacos por solo 3 dólares?",
+    upsellDrink: "And how about an ice-cold Mexican Coke or Agua Fresca to wash that down?",
+    upsellDrinkSpanish: "¿Gusta agregar una Coca-Cola Mexicana de vidrio bien fría o una rica Agua Fresca de Horchata?",
+    orderAffirmation: [
+      "Órale! Added that right to your order!",
+      "You got it amigo, that's gonna be super fire!",
+      "Perfect choice! Fresh off the plancha.",
+      "Added! Anything else for you, jefe?"
+    ],
+    orderAffirmationSpanish: "¡Listo amigo! Ya lo agregué a su orden. ¿Desea algo más?",
+    cartSummaryIntro: "Alright amigo, here's what we got on your ticket so far:",
+    cartSummaryIntroSpanish: "Muy bien amigo, esto es lo que llevamos en su cuenta:",
+    checkoutPrompt: "Ready to wrap this up and send it to the kitchen on Camelback Road, amigo?",
+    checkoutPromptSpanish: "¿Listo para enviar su orden a la cocina para recoger aquí en Camelback Road?",
+    thanks: "¡Muchas gracias! Your order is being prepared fresh. Provecho!",
+    thanksSpanish: "¡Muchísimas gracias por ordenar con Az Tacos King! Buen provecho.",
+    voiceKeywords: ["amigo", "jefe", "órale", "super fire", "provecho"]
   },
 
   southern: {
@@ -73,15 +73,15 @@ const ACCENTS = {
     flag: "🤠",
     region: "Texas & Deep South",
     tagline: "Warm, hospitable, heartfelt 'y'all' charm",
-    tts: { rate: 0.92, pitch: 0.94, lang: "en-US" },
+    tts: { rate: 0.94, pitch: 0.96, lang: "en-US" },
     greetings: [
       "Howdy y'all! Welcome on in to Az Tacos King! I'm Bella, and we've got the tastiest birria you ever set eyes on. What can I fix up for ya today, darlin'?",
       "Well hey there! Mighty glad you stopped by Birria Kingz today. What are you fixin' to eat?",
       "Howdy! Come on in and make yourself at home. What can Miss Bella get started for ya?"
     ],
     spanishGreeting: "¡Hola amigos! Bienvenidos a Az Tacos King. ¿Qué les servimos hoy?",
-    upsellConsome: "Now darlin', you can't have them crispy quesatacos without our hot dipping consomé! Reckon I should add a cup for $3?",
-    upsellConsomeSpanish: "¿Le agregamos un rico consomé calientito por $3?",
+    upsellConsome: "Now darlin', you can't have them crispy quesatacos without our hot dipping consomé! Reckon I should add a cup for 3 dollars?",
+    upsellConsomeSpanish: "¿Le agregamos un rico consomé calientito por 3 dólares?",
     upsellDrink: "Can I get ya a big sweet Mexican Coke or ice-cold Horchata to wash it on down?",
     upsellDrinkSpanish: "¿Una rica Horchata bien fría para acompañar?",
     orderAffirmation: [
@@ -106,15 +106,15 @@ const ACCENTS = {
     flag: "🗽",
     region: "NYC & East Coast",
     tagline: "Fast, energetic, direct & full of personality",
-    tts: { rate: 1.08, pitch: 1.04, lang: "en-US" },
+    tts: { rate: 1.02, pitch: 1.02, lang: "en-US" },
     greetings: [
       "Hey, how you doin'? Welcome to Az Tacos King! I'm Bella. What are we havin' today, chief? Best birria in town, guaranteed!",
       "Yo! Welcome to Birria Kingz. What's the order today, boss? Let's make it quick and delicious!",
       "Hey, welcome! I'm Bella. You're in the right spot for the absolute crispiest quesatacos in Phoenix. What do you need?"
     ],
     spanishGreeting: "¡Buenas! Bienvenidos a Az Tacos King. ¿Qué ordenamos hoy, jefe?",
-    upsellConsome: "Listen to me chief: you gotta dip that in our 8 oz hot consomé. It's a no-brainer. I'm throwin' one in, yeah?",
-    upsellConsomeSpanish: "Amigo, tiene que llevar consomé para sopear. ¿Se lo agrego por $3?",
+    upsellConsome: "Listen to me chief: you gotta dip that in our 8 ounce hot consomé. It's a no-brainer. I'm throwin' one in, yeah?",
+    upsellConsomeSpanish: "Amigo, tiene que llevar consomé para sopear. ¿Se lo agrego por 3 dólares?",
     upsellDrink: "Grab an ice-cold Mexican bottle drink to go with that. What flavor you want?",
     upsellDrinkSpanish: "¿Y de tomar? Tenemos Coca Mexicana y Jarritos.",
     orderAffirmation: [
@@ -139,15 +139,15 @@ const ACCENTS = {
     flag: "🌴",
     region: "West Coast / SoCal",
     tagline: "Laid-back, upbeat, breezy & enthusiastic foodie",
-    tts: { rate: 1.03, pitch: 1.01, lang: "en-US" },
+    tts: { rate: 0.98, pitch: 1.0, lang: "en-US" },
     greetings: [
       "Yo, what's up! Welcome to Az Tacos King! I'm Bella. Honestly, the birria today is totally next level. What are you vibing with?",
       "Hey dude! Welcome to Birria Kingz! We've got insane quesatacos and ramen ready to roll. What are you craving?",
       "Sup! I'm Bella. Super stoked to help you with lunch or dinner today. What sounds good?"
     ],
     spanishGreeting: "¡Qué onda amigo! Bienvenidos a Az Tacos King. ¿Qué se le antoja hoy?",
-    upsellConsome: "Dude, dipping those tacos in the hot consomé is an absolute game-changer. Should I toss one in for $3?",
-    upsellConsomeSpanish: "¿Le ponemos un consomé de 8 oz por $3 para acompañar?",
+    upsellConsome: "Dude, dipping those tacos in the hot consomé is an absolute game-changer. Should I toss one in for 3 dollars?",
+    upsellConsomeSpanish: "¿Le ponemos un consomé de 8 onzas por 3 dólares para acompañar?",
     upsellDrink: "Also an ice-cold Horchata or Jarritos would hit so hard right now. Want one?",
     upsellDrinkSpanish: "¿Una Horchata o Jarrito de mandarina bien helado?",
     orderAffirmation: [
@@ -172,15 +172,15 @@ const ACCENTS = {
     flag: "🌾",
     region: "Midwest US",
     tagline: "Extra cheerful, polite, cozy & warm",
-    tts: { rate: 0.98, pitch: 1.06, lang: "en-US" },
+    tts: { rate: 0.96, pitch: 1.02, lang: "en-US" },
     greetings: [
       "Well hello there! Welcome to Az Tacos King! I'm Bella. Oh boy, do we have some wonderful comfort food for ya today! What can I get ya started with?",
       "Hi there, neighbor! Welcome to Birria Kingz! It smells just delightful in here today. What can I get for ya?",
       "Good day to ya! I'm Bella, and I'd be more than happy to help you get some yummy tacos today!"
     ],
     spanishGreeting: "¡Hola! Bienvenidos a Az Tacos King. ¿Qué se le ofrece hoy?",
-    upsellConsome: "Oh geez, don't forget our tasty 8 oz dipping broth! It's so nice and warm, want me to pop one in for $3?",
-    upsellConsomeSpanish: "¿Gusta que le agregue un consomé caliente por $3?",
+    upsellConsome: "Oh geez, don't forget our tasty 8 ounce dipping broth! It's so nice and warm, want me to pop one in for 3 dollars?",
+    upsellConsomeSpanish: "¿Gusta que le agregue un consomé caliente por 3 dólares?",
     upsellDrink: "Can I get ya a nice cold pop or one of our Mexican sodas to go with that?",
     upsellDrinkSpanish: "¿Una bebida mexicana para acompañar?",
     orderAffirmation: [
@@ -200,10 +200,10 @@ const ACCENTS = {
   }
 };
 
-let currentAccentId = "chicano";
+let currentAccentId = "standard";
 
 function getActiveAccent() {
-  return ACCENTS[currentAccentId] || ACCENTS.chicano;
+  return ACCENTS[currentAccentId] || ACCENTS.standard;
 }
 
 function setActiveAccent(accentId) {
@@ -211,7 +211,7 @@ function setActiveAccent(accentId) {
     currentAccentId = accentId;
     return ACCENTS[accentId];
   }
-  return ACCENTS.chicano;
+  return ACCENTS.standard;
 }
 
 if (typeof module !== 'undefined' && module.exports) {

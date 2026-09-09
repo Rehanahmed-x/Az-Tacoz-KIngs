@@ -44,10 +44,10 @@
 
       <!-- Accent Selection Prior to Calling -->
       <div class="call-screen-accent-picker">
-        <label for="precall-accent-select">Select Bella's US English Accent:</label>
+        <label for="precall-accent-select">Select Bella's US English Voice & Accent:</label>
         <select id="precall-accent-select">
-          <option value="chicano" selected>🌵 Southwestern / Chicano (Phoenix Local Street Vibe)</option>
-          <option value="standard">🇺🇸 General American (Standard US Assistant)</option>
+          <option value="standard" selected>🇺🇸 Crystal Clear / General American (Easy to Understand)</option>
+          <option value="chicano">🌵 Southwestern / Chicano (Phoenix Local Street Vibe)</option>
           <option value="southern">🤠 Southern Drawl (Texas / Deep South)</option>
           <option value="newyork">🗽 New York / East Coast (Fast & Energetic)</option>
           <option value="california">🌴 California Chill (West Coast Foodie)</option>
@@ -73,6 +73,7 @@
         <span class="in-call-dot"></span>
         <span style="font-weight: 700;">Connected to Bella</span>
         <span id="in-call-timer" class="in-call-timer">00:00</span>
+        <span class="in-call-barge-hint" style="font-size: 11px; color: var(--gold); margin-left: 6px;">⚡ Speak to interrupt</span>
         <div class="soundwave-indicator active" style="margin-left: 6px;">
           <span></span><span></span><span></span><span></span>
         </div>
@@ -115,16 +116,17 @@
 
     <!-- Localhost File Warning Banner -->
     <div id="file-protocol-warning" class="file-warning-banner" style="display: none;">
-      ⚡ <strong>Client Demo Tip:</strong> Open via <strong>Start_Az_Tacos_King.bat</strong> on your Desktop for 100% persistent microphone permissions without browser re-prompts!
+      ⚡ <strong>Client Demo Tip:</strong> Open via <strong>Start_Az_Tacos_King.bat</strong> or host on GitHub Pages for permanent HTTPS microphone permissions!
     </div>
 
     <!-- Client Demo Shortcuts Row -->
     <div class="client-demo-bar" aria-label="One-tap Client Presentation Shortcuts">
-      <span class="demo-tag">🎯 Client Demo:</span>
+      <span class="demo-tag">🎯 Demo Tests:</span>
       <button class="demo-chip" data-speak="Can I get 3 Quesatacos and a Consomé">🌮 "3 Quesatacos & Consomé"</button>
-      <button class="demo-chip" data-speak="I want 1 Birria Ramen and King Fries">🍜 "Birria Ramen & King Fries"</button>
+      <button class="demo-chip" data-speak="Yeah sure, add that dipping broth">✅ "Yes, add the consomé"</button>
+      <button class="demo-chip" data-speak="Wait, remove the ramen please">🛑 "Remove the ramen" (Interrupt)</button>
       <button class="demo-chip" data-speak="Give me a 50 Dollar Taco Box and Horchata">📦 "$50 Taco Box & Horchata"</button>
-      <button class="demo-chip" data-speak="Quiero tres quesatacos sin cebolla">🇲🇽 "3 Quesatacos sin cebolla"</button>
+      <button class="demo-chip" data-speak="Do you deliver and how long does it take">🚗 "Do you deliver?"</button>
       <button class="demo-chip" data-speak="That is all, ready to checkout">💳 "Ready to checkout"</button>
     </div>
 
@@ -142,7 +144,7 @@
                 <span></span><span></span><span></span><span></span>
               </div>
             </h2>
-            <p id="bella-subtext">Southwestern / Chicano • Warm, bilingual touches & street taco vibes</p>
+            <p id="bella-subtext">Crystal Clear • Crisp enunciation & effortless to understand</p>
           </div>
         </div>
 
@@ -161,13 +163,13 @@
 
       <!-- USA Regional English Accent Switcher Strip -->
       <div class="accent-selector-strip" aria-label="Select US English Accent Dialect">
-        <button class="accent-pill active" data-accent="chicano" title="Phoenix Local / Southwestern">
+        <button class="accent-pill active" data-accent="standard" title="Crystal Clear / General American (Easy to Understand)">
+          <span>🇺🇸</span>
+          <span>Crystal Clear</span>
+        </button>
+        <button class="accent-pill" data-accent="chicano" title="Phoenix Local / Southwestern">
           <span>🌵</span>
           <span>Southwestern / Chicano</span>
-        </button>
-        <button class="accent-pill" data-accent="standard" title="General American Standard">
-          <span>🇺🇸</span>
-          <span>General American</span>
         </button>
         <button class="accent-pill" data-accent="southern" title="Southern US / Texas Drawl">
           <span>🤠</span>

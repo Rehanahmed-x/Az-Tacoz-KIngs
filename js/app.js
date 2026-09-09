@@ -63,13 +63,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize Voice Controller State Watcher
   voiceController.onStateChange = (state) => {
+    if (state.isInterrupted) {
+      bellaAvatarRing.classList.remove("speaking");
+      soundwaveIndicator.classList.remove("active");
+      if (liveVoiceBadge) {
+        liveVoiceBadge.style.display = "inline-flex";
+        liveVoiceBadge.className = "live-voice-badge listening";
+        if (liveVoiceStatusText) liveVoiceStatusText.innerHTML = "⚡ Interrupted • Listening to you...";
+      }
+      if (liveSpeechToast) {
+        liveSpeechToast.style.display = "flex";
+        liveSpeechText.innerText = "⚡ I hear you! Go ahead...";
+      }
+      return;
+    }
+
     if (state.isSpeaking) {
       bellaAvatarRing.classList.add("speaking");
       soundwaveIndicator.classList.add("active");
       if (liveVoiceBadge) {
         liveVoiceBadge.style.display = "inline-flex";
         liveVoiceBadge.className = "live-voice-badge speaking";
-        if (liveVoiceStatusText) liveVoiceStatusText.innerHTML = "🔊 Bella is speaking...";
+        if (liveVoiceStatusText) liveVoiceStatusText.innerHTML = "🔊 Bella is speaking... (Interrupt anytime!)";
       }
     } else {
       bellaAvatarRing.classList.remove("speaking");
@@ -79,12 +94,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (state.isListening) {
       micBtn.classList.add("listening");
       micBtn.innerHTML = "🎙️";
-      if (liveVoiceBadge) {
+      if (liveVoiceBadge && !state.isSpeaking) {
         liveVoiceBadge.style.display = "inline-flex";
         liveVoiceBadge.className = "live-voice-badge listening";
         if (liveVoiceStatusText) liveVoiceStatusText.innerHTML = "🟢 Bella is listening... Speak anytime!";
       }
-      if (liveSpeechToast) {
+      if (liveSpeechToast && !state.isSpeaking) {
         liveSpeechToast.style.display = "flex";
         liveSpeechText.innerText = "Listening... Speak your order!";
       }
@@ -476,6 +491,99 @@ document.addEventListener("DOMContentLoaded", () => {
     const parsed = orderEngine.parseUserMessage(userText);
     const isSpanish = parsed.lang === "es";
 
+    // 0. CONVERSATIONAL UPSELL CONFIRMATION (Handles "yes", "sure", "add it")
+    if (parsed.intent === "upsell_confirm" && parsed.upsellItem) {
+      orderEngine.addItem(parsed.upsellItem, 1);
+      voiceController.playCartAdd();
+      const summary = orderEngine.getSummary();
+      const reply = isSpanish 
+        ? `¡Perfecto amigo! Agregué <strong>${escapeHtml(parsed.upsellItem.name)}</strong> a su orden.<br>Subtotal actual: <strong>$${summary.subtotal.toFixed(2)}</strong>. ¿Desea algo más o cerramos la cuenta?`
+        : `Awesome choice! Added <strong>${escapeHtml(parsed.upsellItem.name)}</strong> right to your ticket.<br>Subtotal: <strong>$${summary.subtotal.toFixed(2)}</strong>. Anything else for you, or ready to checkout?`;
+      const speech = isSpanish
+        ? `Perfecto, agregué ${parsed.upsellItem.name} a su orden. ¿Desea algo más?`
+        : `Awesome! Added the ${parsed.upsellItem.name} to your ticket. Anything else I can get started for you, or ready to checkout?`;
+      appendBellaMessage(reply);
+      orderEngine.lastSpokenResponse = speech;
+      voiceController.speak(speech, accent, isSpanish ? "es" : "en");
+      return;
+    }
+
+    // 0B. CONVERSATIONAL UPSELL DECLINE (Handles "no", "no thanks", "i'm good")
+    if (parsed.intent === "upsell_decline") {
+      const reply = isSpanish
+        ? `¡Entendido amigo! Sin problema. ¿Desea ordenar algo más o prefiere pagar ahora?`
+        : `No problem at all! What else can I get started for you today, or are you ready to checkout?`;
+      appendBellaMessage(reply);
+      orderEngine.lastSpokenResponse = reply;
+      voiceController.speak(reply, accent, isSpanish ? "es" : "en");
+      return;
+    }
+
+    // 0C. ITEM REMOVAL INTENT ("remove the ramen", "take off quesatacos")
+    if (parsed.intent === "order_remove") {
+      const removed = orderEngine.removeItemByName(parsed.removeItemQuery || "");
+      if (removed) {
+        voiceController.playPop(350, 0.08);
+        const summary = orderEngine.getSummary();
+        const reply = isSpanish
+          ? `He eliminado <strong>${escapeHtml(removed.menuItem.name)}</strong> de su orden.<br>Nuevo subtotal: <strong>$${summary.subtotal.toFixed(2)}</strong>.`
+          : `Got it! I took the <strong>${escapeHtml(removed.menuItem.name)}</strong> off your ticket.<br>Updated subtotal: <strong>$${summary.subtotal.toFixed(2)}</strong>.`;
+        const speech = isSpanish
+          ? `Listo amigo, quité ${removed.menuItem.name} de su cuenta.`
+          : `Got it! I removed ${removed.menuItem.name} from your ticket. Your updated subtotal is $${summary.subtotal.toFixed(2)}.`;
+        appendBellaMessage(reply);
+        orderEngine.lastSpokenResponse = speech;
+        voiceController.speak(speech, accent, isSpanish ? "es" : "en");
+      } else {
+        const reply = isSpanish
+          ? `No encontré ese platillo en su orden actual. Revise su carrito tocando el botón de arriba.`
+          : `I couldn't find that item on your ticket right now. You can check your cart to see what's in your bag!`;
+        appendBellaMessage(reply);
+        orderEngine.lastSpokenResponse = reply;
+        voiceController.speak(reply, accent, isSpanish ? "es" : "en");
+      }
+      return;
+    }
+
+    // 0D. REPEAT REQUEST ("repeat", "say that again", "what did you say")
+    if (parsed.intent === "repeat_request") {
+      const repeatSpeech = orderEngine.lastSpokenResponse || (isSpanish 
+        ? "Le preguntaba qué delicioso platillo le preparamos hoy en Az Tacos King." 
+        : "I was asking what delicious tacos or birria items I can get started for you today!");
+      const reply = `🔄 <strong>Here's what I said:</strong><br><em>"${repeatSpeech}"</em>`;
+      appendBellaMessage(reply);
+      voiceController.speak(repeatSpeech, accent, isSpanish ? "es" : "en");
+      return;
+    }
+
+    // 0E. FULFILLMENT & DELIVERY INQUIRIES
+    if (parsed.intent === "fulfillment_info") {
+      const reply = isSpanish
+        ? `🛍️ <strong>Pickup:</strong> Gratis y listo en 15 a 20 minutos aquí en 2030 W Camelback Rd.<br>🚗 <strong>Delivery:</strong> Entrega a domicilio por solo $4.99 de envío.`
+        : `🛍️ <strong>Pickup:</strong> Free and ready in about 15 to 20 minutes right here at 2030 W Camelback Rd.<br>🚗 <strong>Delivery:</strong> We deliver straight to your door with a $4.99 delivery fee!`;
+      const speech = isSpanish
+        ? "Ofrecemos pickup gratis listo en 15 a 20 minutos, y entrega a domicilio por 4 dólares y 99 centavos."
+        : "We offer free pickup ready in 15 to 20 minutes right on Camelback Road, or delivery for a 4 dollar and 99 cent fee!";
+      appendBellaMessage(reply);
+      orderEngine.lastSpokenResponse = speech;
+      voiceController.speak(speech, accent, isSpanish ? "es" : "en");
+      return;
+    }
+
+    // 0F. FOOD, SPICE & INGREDIENT QUESTIONS
+    if (parsed.intent === "food_info") {
+      const reply = isSpanish
+        ? `🔥 Nuestra famosa birria es 100% carne de res tierna, cocinada a fuego lento. Nuestra salsa verde es suave y la salsa roja tiene un rico picante. Servimos con limones frescos, cebolla y cilantro.`
+        : `🔥 Our famous birria is 100% tender beef slow-simmered in rich Mexican spices. Our green salsa is mild and zesty, while our red salsa brings a savory kick! All tacos come with fresh lime wedges, onions, and cilantro.`;
+      const speech = isSpanish
+        ? "Nuestra birria es 100% carne de res. Tenemos salsa verde suave y salsa roja picosita."
+        : "Our signature birria is 100% slow-simmered beef! Green salsa is mild and red salsa has a nice spicy kick.";
+      appendBellaMessage(reply);
+      orderEngine.lastSpokenResponse = speech;
+      voiceController.speak(speech, accent, isSpanish ? "es" : "en");
+      return;
+    }
+
     // 1. COMPOUND / MULTI-ITEM ORDER TAKING (Highest Efficiency)
     if (parsed.intent === "order_add" && parsed.itemsFound.length > 0) {
       let addedItemsSummary = [];
@@ -514,7 +622,7 @@ document.addEventListener("DOMContentLoaded", () => {
         speechText = `${affirmation} Added ${addedItemsSummary.join(", ")} to your order. Your subtotal is $${summary.subtotal.toFixed(2)}. Would you like anything else?`;
       }
 
-      // Smart Upsell Suggestion
+      // Smart Upsell Suggestion & Dialogue Context
       const hasConsomeInCart = orderEngine.cart.some(entry => entry.menuItem.id.includes("consome"));
       const addedTaco = parsed.itemsFound.some(m => m.item.id.includes("taco"));
       let upsellCards = [];
@@ -522,18 +630,25 @@ document.addEventListener("DOMContentLoaded", () => {
       if (addedTaco && !hasConsomeInCart) {
         reply += `<br><br>💡 ${isSpanish ? accent.upsellConsomeSpanish : accent.upsellConsome}`;
         const consomeItem = MENU_ITEMS.find(i => i.id === "item_consome_cup");
-        if (consomeItem) upsellCards.push(consomeItem);
+        if (consomeItem) {
+          upsellCards.push(consomeItem);
+          orderEngine.lastUpsellItem = consomeItem; // Track pending upsell!
+        }
       } else {
         const hasDrink = orderEngine.cart.some(entry => entry.menuItem.category === "Beverages & Drinks");
         if (!hasDrink) {
           reply += `<br><br>🥤 ${isSpanish ? accent.upsellDrinkSpanish : accent.upsellDrink}`;
           const drinkItem = MENU_ITEMS.find(i => i.id === "item_mexican_bottle");
-          if (drinkItem) upsellCards.push(drinkItem);
+          if (drinkItem) {
+            upsellCards.push(drinkItem);
+            orderEngine.lastUpsellItem = drinkItem; // Track pending upsell!
+          }
         }
       }
 
       const langTag = isSpanish ? "Español / Spanish" : parsed.lang !== "en" ? `${parsed.lang.toUpperCase()} Detected` : accent.name;
       appendBellaMessage(reply, { cards: upsellCards, accentTag: langTag });
+      orderEngine.lastSpokenResponse = speechText;
       voiceController.speak(speechText, accent, isSpanish ? "es" : "en");
       return;
     }
@@ -546,6 +661,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ? "Su carrito está vacío. Dígame qué le gustaría ordenar para comenzar." 
           : "Your cart is currently empty! Tell me what you'd like to eat to start your order.";
         appendBellaMessage(reply);
+        orderEngine.lastSpokenResponse = reply;
         voiceController.speak(reply, accent, isSpanish ? "es" : "en");
         return;
       }
@@ -555,6 +671,7 @@ document.addEventListener("DOMContentLoaded", () => {
         : `Alright! You have ${summary.itemCount} item(s) on your ticket for a total of <strong>$${summary.total.toFixed(2)}</strong>.<br>${accent.checkoutPrompt}`;
       
       appendBellaMessage(reply);
+      orderEngine.lastSpokenResponse = reply.replace(/<[^>]*>?/gm, '');
       voiceController.speak(reply.replace(/<[^>]*>?/gm, ''), accent, isSpanish ? "es" : "en");
       openCartDrawer();
       return;
@@ -568,6 +685,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ? "Aún no tiene nada en su bolsa. Pruebe pidiendo: <em>'3 quesatacos'</em> o <em>'Birria Ramen'</em>."
           : "You don't have any items in your bag yet. Try ordering: <em>'3 quesatacos'</em> or <em>'Birria Ramen'</em>!";
         appendBellaMessage(reply);
+        orderEngine.lastSpokenResponse = reply.replace(/<[^>]*>?/gm, '');
         voiceController.speak(reply.replace(/<[^>]*>?/gm, ''), accent, isSpanish ? "es" : "en");
       } else {
         let listText = summary.items.map(it => `• ${it.quantity}x ${it.menuItem.name} ($${(it.quantity * it.menuItem.price).toFixed(2)})`).join("<br>");
@@ -575,7 +693,9 @@ document.addEventListener("DOMContentLoaded", () => {
           ? `${accent.cartSummaryIntroSpanish}<br><br>${listText}<br><br><strong>Subtotal:</strong> $${summary.subtotal.toFixed(2)}<br>¿Desea pagar o agregar algo más?`
           : `${accent.cartSummaryIntro}<br><br>${listText}<br><br><strong>Subtotal:</strong> $${summary.subtotal.toFixed(2)}<br>Ready to checkout, or would you like to add anything else?`;
         appendBellaMessage(reply);
-        voiceController.speak(isSpanish ? `Tiene ${summary.itemCount} artículos con un subtotal de $${summary.subtotal.toFixed(2)} dólares.` : `${accent.cartSummaryIntro} You have ${summary.itemCount} items for $${summary.subtotal.toFixed(2)}.`, accent, isSpanish ? "es" : "en");
+        const speech = isSpanish ? `Tiene ${summary.itemCount} artículos con un subtotal de $${summary.subtotal.toFixed(2)} dólares.` : `${accent.cartSummaryIntro} You have ${summary.itemCount} items for $${summary.subtotal.toFixed(2)}.`;
+        orderEngine.lastSpokenResponse = speech;
+        voiceController.speak(speech, accent, isSpanish ? "es" : "en");
         openCartDrawer();
       }
       return;
@@ -586,6 +706,7 @@ document.addEventListener("DOMContentLoaded", () => {
       orderEngine.clearCart();
       const reply = isSpanish ? "He vaciado su carrito. ¿Con qué empezamos de nuevo?" : "I've cleared your order cart! What would you like to start with fresh?";
       appendBellaMessage(reply);
+      orderEngine.lastSpokenResponse = reply;
       voiceController.speak(reply, accent, isSpanish ? "es" : "en");
       return;
     }
@@ -597,7 +718,9 @@ document.addEventListener("DOMContentLoaded", () => {
         ? `Nuestros platillos más populares aquí en Phoenix son el <strong>Combo de 3 Quesatacos con Consomé y Agua Fresca ($13.99)</strong>, el <strong>Birria Ramen ($15.00)</strong>, y la <strong>Caja Familiar de 50 Tacos ($50.00)</strong>:`
         : `Our biggest hits right here in Phoenix are the <strong>3 Quesataco Combo with Consomé & Agua Fresca ($13.99)</strong>, the viral <strong>Birria Ramen ($15.00)</strong>, and our <strong>$50 Family Taco Box</strong>! Here they are:`;
       appendBellaMessage(reply, { cards: bestSellers });
-      voiceController.speak(reply.replace(/<[^>]*>?/gm, ''), accent, isSpanish ? "es" : "en");
+      const speech = reply.replace(/<[^>]*>?/gm, '');
+      orderEngine.lastSpokenResponse = speech;
+      voiceController.speak(speech, accent, isSpanish ? "es" : "en");
       return;
     }
 
@@ -608,7 +731,9 @@ document.addEventListener("DOMContentLoaded", () => {
         ? `Aquí tiene algunos de nuestros mejores combos y especiales de Birria Kingz. Puede tocar <em>+ Add to Order</em> o simplemente decirme qué se le antoja:`
         : `Here are some of our legendary Birria Kingz combos & specials! You can tap <em>+ Add to Order</em> on any item or just tell me what you'd like:`;
       appendBellaMessage(reply, { cards: combos });
-      voiceController.speak(reply.replace(/<[^>]*>?/gm, ''), accent, isSpanish ? "es" : "en");
+      const speech = reply.replace(/<[^>]*>?/gm, '');
+      orderEngine.lastSpokenResponse = speech;
+      voiceController.speak(speech, accent, isSpanish ? "es" : "en");
       return;
     }
 
@@ -619,7 +744,9 @@ document.addEventListener("DOMContentLoaded", () => {
         ? `¡Sí! Tenemos nuestro <strong>Keto Taco ($3.50)</strong> con costra de queso dorada 100% libre de carbohidratos. Además, nuestro Consomé natural no tiene gluten.`
         : `Yes! We have our signature <strong>Keto Taco ($3.50)</strong> made with a 100% crispy melted cheese shell instead of a tortilla—zero carbs and pure birria flavor! Our Consomé is also low-carb and naturally gluten-free.`;
       appendBellaMessage(reply, { cards: ketoItem ? [ketoItem] : [] });
-      voiceController.speak(reply.replace(/<[^>]*>?/gm, ''), accent, isSpanish ? "es" : "en");
+      const speech = reply.replace(/<[^>]*>?/gm, '');
+      orderEngine.lastSpokenResponse = speech;
+      voiceController.speak(speech, accent, isSpanish ? "es" : "en");
       return;
     }
 
@@ -637,7 +764,9 @@ document.addEventListener("DOMContentLoaded", () => {
            Phone: <strong>${RESTAURANT_INFO.phoneDisplay}</strong><br>
            We are ready for Pickup and Delivery right now!`;
       appendBellaMessage(reply);
-      voiceController.speak(isSpanish ? "Az Tacos King está ubicado en 2030 West Camelback Road en Phoenix. Estamos abiertos todos los días." : "Az Tacos King is located at 2030 West Camelback Road in Phoenix.", accent, isSpanish ? "es" : "en");
+      const speech = isSpanish ? "Az Tacos King está ubicado en 2030 West Camelback Road en Phoenix. Estamos abiertos todos los días." : "Az Tacos King is located at 2030 West Camelback Road in Phoenix.";
+      orderEngine.lastSpokenResponse = speech;
+      voiceController.speak(speech, accent, isSpanish ? "es" : "en");
       return;
     }
 
@@ -645,6 +774,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (parsed.intent === "greeting") {
       const greeting = isSpanish ? accent.spanishGreeting : accent.greetings[Math.floor(Math.random() * accent.greetings.length)];
       appendBellaMessage(greeting);
+      orderEngine.lastSpokenResponse = greeting;
       voiceController.speak(greeting, accent, isSpanish ? "es" : "en");
       return;
     }
@@ -654,7 +784,9 @@ document.addEventListener("DOMContentLoaded", () => {
       ? `¡Estoy a sus órdenes! Dígame qué desea ordenar, por ejemplo: <em>"Quiero 3 quesatacos y un consomé"</em>, <em>"Un birria ramen"</em>, o <em>"Ver el menú"</em>.`
       : `I'm right here with ya! Tell me what you'd like to eat—for example: <em>"Add 3 quesatacos"</em>, <em>"Birria Ramen"</em>, or <em>"Show me the combos"</em>!`;
     appendBellaMessage(defaultReply);
-    voiceController.speak(defaultReply.replace(/<[^>]*>?/gm, ''), accent, isSpanish ? "es" : "en");
+    const speech = defaultReply.replace(/<[^>]*>?/gm, '');
+    orderEngine.lastSpokenResponse = speech;
+    voiceController.speak(speech, accent, isSpanish ? "es" : "en");
   }
 
   // Update Cart UI
@@ -918,4 +1050,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const now = new Date();
     return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
+
+  // Tap or click anywhere to interrupt Bella immediately if speaking
+  document.addEventListener("click", (e) => {
+    if (voiceController.isSpeaking && !e.target.closest("button") && !e.target.closest("input") && !e.target.closest("select")) {
+      voiceController.stopSpeaking();
+    }
+  });
+
+  // Spacebar or Escape to interrupt Bella immediately
+  document.addEventListener("keydown", (e) => {
+    if ((e.key === "Escape" || (e.key === " " && document.activeElement !== chatInput)) && voiceController.isSpeaking) {
+      voiceController.stopSpeaking();
+    }
+  });
 });
