@@ -223,7 +223,8 @@ const MENU_ITEMS = [
     price: 2.50,
     category: "Tacos & Plates",
     popular: false,
-    description: "Traditional Mexican street taco on doubled yellow corn tortilla with your choice of protein, cilantro, and chopped onions."
+    description: "Traditional Mexican street taco on doubled yellow corn tortilla with your choice of protein, cilantro, and chopped onions.",
+    image: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_street_taco_platter",
@@ -231,7 +232,8 @@ const MENU_ITEMS = [
     price: 25.00,
     category: "Combos & Specials",
     popular: false,
-    description: "10 birria street tacos with your choice of up to two proteins. Includes radish, limes, and salsas."
+    description: "10 birria street tacos with your choice of up to two proteins. Includes radish, limes, and salsas.",
+    image: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_king_platter_combo",
@@ -239,7 +241,8 @@ const MENU_ITEMS = [
     price: 25.00,
     category: "Combos & Specials",
     popular: false,
-    description: "Ultimate sampler featuring 2 quesatacos, 2 street tacos, consomé, rice, beans, and a drink."
+    description: "Ultimate sampler featuring 2 quesatacos, 2 street tacos, consomé, rice, beans, and a drink.",
+    image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_birria_de_res_plate",
@@ -247,7 +250,8 @@ const MENU_ITEMS = [
     price: 15.00,
     category: "Tacos & Plates",
     popular: false,
-    description: "Generous plate of shredded beef birria in rich chili jus, served with Mexican rice, beans, and warm corn tortillas."
+    description: "Generous plate of shredded beef birria in rich chili jus, served with Mexican rice, beans, and warm corn tortillas.",
+    image: "https://images.unsplash.com/photo-1504544750208-dc0358e63f7f?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_consome_de_birria_large",
@@ -255,7 +259,8 @@ const MENU_ITEMS = [
     price: 15.00,
     category: "Birria & Consomé",
     popular: false,
-    description: "Large 16 oz bowl of hearty birria broth packed with shredded beef, herbs, onions, and cilantro."
+    description: "Large 16 oz bowl of hearty birria broth packed with shredded beef, herbs, onions, and cilantro.",
+    image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_consome_cup",
@@ -264,7 +269,8 @@ const MENU_ITEMS = [
     category: "Birria & Consomé",
     popular: true,
     badge: "🥣 Dipping Cup",
-    description: "8 oz cup of rich savory slow-simmered birria dipping broth. Essential for dipping your quesatacos!"
+    description: "8 oz cup of rich savory slow-simmered birria dipping broth. Essential for dipping your quesatacos!",
+    image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_bean_cheese_burro",
@@ -272,7 +278,8 @@ const MENU_ITEMS = [
     price: 8.00,
     category: "Burros & Quesadillas",
     popular: false,
-    description: "Warm flour tortilla filled with authentic refried pinto beans and melted Mexican blend cheese."
+    description: "Warm flour tortilla filled with authentic refried pinto beans and melted Mexican blend cheese.",
+    image: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_cheese_quesadilla",
@@ -280,7 +287,8 @@ const MENU_ITEMS = [
     price: 7.00,
     category: "Burros & Quesadillas",
     popular: false,
-    description: "Large toasted flour tortilla filled with melted Monterey Jack cheese."
+    description: "Large toasted flour tortilla filled with melted Monterey Jack cheese.",
+    image: "https://images.unsplash.com/photo-1618040996337-56904b7850b9?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_birria_taquitos",
@@ -288,7 +296,8 @@ const MENU_ITEMS = [
     price: 12.00,
     category: "Sides & Appetizers",
     popular: false,
-    description: "4 rolled crispy corn tortillas filled with seasoned birria beef, topped with shredded lettuce and sour cream."
+    description: "4 rolled crispy corn tortillas filled with seasoned birria beef, topped with shredded lettuce and sour cream.",
+    image: "https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_mexican_bottle",
@@ -298,6 +307,7 @@ const MENU_ITEMS = [
     popular: true,
     badge: "🥤 Ice Cold",
     description: "Authentic Mexican soda made with real cane sugar. Choose Mexican Coke, Jarritos Mandarin, Lime, or Pineapple.",
+    image: "https://images.unsplash.com/photo-1581636625402-29b2a704ef13?w=600&auto=format&fit=crop&q=80",
     options: {
       flavor: ["Mexican Coca-Cola (Glass)", "Jarritos Mandarin", "Jarritos Pineapple", "Jarritos Tamarind", "Sidral Mundet (Apple)"]
     }
@@ -308,7 +318,8 @@ const MENU_ITEMS = [
     price: 6.00,
     category: "Sides & Appetizers",
     popular: false,
-    description: "Generous basket of golden seasoned french fries."
+    description: "Generous basket of golden seasoned french fries.",
+    image: "https://images.unsplash.com/photo-1576107232684-1279f3908594?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_rice",
@@ -316,7 +327,8 @@ const MENU_ITEMS = [
     price: 3.00,
     category: "Sides & Appetizers",
     popular: false,
-    description: "Traditional seasoned Mexican tomato rice."
+    description: "Traditional seasoned Mexican tomato rice.",
+    image: "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=600&auto=format&fit=crop&q=80"
   },
   {
     id: "item_chipotle_cream",

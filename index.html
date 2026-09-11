@@ -161,6 +161,11 @@
         <span id="live-voice-status-text">Bella is listening... Speak anytime!</span>
       </div>
 
+      <!-- Compact Audio Waveform Visualizer (Centered below AI speaking status) -->
+      <div id="audio-visualizer-container" class="audio-visualizer-container" title="Audio Waveform">
+        <canvas id="audio-visualizer-canvas" class="audio-visualizer-canvas" width="220" height="28"></canvas>
+      </div>
+
       <!-- USA Regional English Accent Switcher Strip -->
       <div class="accent-selector-strip" aria-label="Select US English Accent Dialect">
         <button class="accent-pill active" data-accent="standard" title="Crystal Clear / General American (Easy to Understand)">
@@ -315,6 +320,10 @@
             <span>Tip</span>
             <span id="tip-amount">$0.00</span>
           </div>
+          <div id="cart-delivery-row" class="total-line" style="display: none;">
+            <span>Delivery Fee</span>
+            <span id="cart-delivery-amount">$4.99</span>
+          </div>
           <div class="total-line grand-total">
             <span>Total</span>
             <span id="grand-total-amount" class="amount">$0.00</span>
@@ -344,13 +353,13 @@
 
           <!-- Quantity input -->
           <div>
-            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Quantity:</label>
+            <label for="custom-qty-input" style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Quantity:</label>
             <input type="number" id="custom-qty-input" value="1" min="1" max="50" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-subtle); color: #fff; padding: 8px 12px; border-radius: var(--radius-sm); width: 80px; font-size: 14px;">
           </div>
 
           <!-- Meat Choice -->
           <div id="custom-meat-group">
-            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Select Meat / Protein:</label>
+            <label for="custom-meat-select" style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Select Meat / Protein:</label>
             <select id="custom-meat-select" style="width: 100%; background: #222234; border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: var(--radius-sm); font-size: 13px;">
               <!-- Options populated by JS -->
             </select>
@@ -358,7 +367,7 @@
 
           <!-- Agua Choice -->
           <div id="custom-agua-group" style="display: none;">
-            <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Select Agua Fresca Drink:</label>
+            <label for="custom-agua-select" style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Select Agua Fresca Drink:</label>
             <select id="custom-agua-select" style="width: 100%; background: #222234; border: 1px solid var(--border-subtle); color: #fff; padding: 10px; border-radius: var(--radius-sm); font-size: 13px;">
               <!-- Options populated by JS -->
             </select>
@@ -424,6 +433,10 @@
             <div class="total-line">
               <span>Tip</span>
               <span id="receipt-tip">$0.00</span>
+            </div>
+            <div id="receipt-delivery-row" class="total-line" style="display: none;">
+              <span>Delivery Fee</span>
+              <span id="receipt-delivery-amount">$4.99</span>
             </div>
             <div class="total-line grand-total">
               <span>Total Paid</span>

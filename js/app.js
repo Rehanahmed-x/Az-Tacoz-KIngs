@@ -155,6 +155,124 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ==========================================
+  // COMPACT AUDIO WAVEFORM VISUALIZER
+  // ==========================================
+  const audioVisualizerContainer = document.getElementById("audio-visualizer-container");
+  const audioVisualizerCanvas = document.getElementById("audio-visualizer-canvas");
+  const visualizerCtx = audioVisualizerCanvas ? audioVisualizerCanvas.getContext("2d") : null;
+
+  let vizPhase = 0;
+  let vizIdlePulse = 0;
+  let currentVizLevel = 0;
+
+  function renderAudioVisualizer() {
+    if (!audioVisualizerCanvas || !visualizerCtx) return;
+
+    const width = audioVisualizerCanvas.width;
+    const height = audioVisualizerCanvas.height;
+    const midY = height / 2;
+
+    visualizerCtx.clearRect(0, 0, width, height);
+
+    vizPhase += 0.05;
+    vizIdlePulse += 0.025;
+
+    const isSpeaking = voiceController && voiceController.isSpeaking;
+    const isListening = voiceController && voiceController.isListening;
+    const analyser = voiceController && voiceController.analyser;
+
+    // Synchronize container state class for glowing pill border
+    if (audioVisualizerContainer) {
+      if (isSpeaking) {
+        audioVisualizerContainer.className = "audio-visualizer-container speaking";
+      } else if (isListening) {
+        audioVisualizerContainer.className = "audio-visualizer-container listening";
+      } else {
+        audioVisualizerContainer.className = "audio-visualizer-container";
+      }
+    }
+
+    // Audio frequency / volume calculation
+    let targetLevel = 0;
+    let freqBuffer = null;
+
+    if (isListening && analyser) {
+      freqBuffer = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(freqBuffer);
+      let sum = 0;
+      for (let i = 0; i < freqBuffer.length; i++) sum += freqBuffer[i];
+      targetLevel = Math.min(1, (sum / freqBuffer.length) / 40);
+    } else if (isSpeaking) {
+      // Dynamic pseudo-rhythmic speech energy when Bella is talking
+      targetLevel = 0.5 + 0.3 * Math.sin(vizPhase * 2.5) + 0.2 * Math.cos(vizPhase * 1.8);
+    } else {
+      // Idle: subtle pulsing alive baseline (never a flat dead line)
+      targetLevel = 0;
+    }
+
+    // Smooth dampening for level transitions
+    currentVizLevel += (targetLevel - currentVizLevel) * 0.2;
+
+    // Organic idle pulse: gentle breathing wave
+    const idleAmplitude = 2.2 + Math.sin(vizIdlePulse) * 1.2;
+    const dynamicAmplitude = idleAmplitude + currentVizLevel * 9;
+
+    // Dynamic wave gradient
+    const grad = visualizerCtx.createLinearGradient(0, 0, width, 0);
+    if (isListening) {
+      grad.addColorStop(0, "rgba(74, 222, 128, 0.2)");
+      grad.addColorStop(0.5, "rgba(34, 197, 94, 0.95)");
+      grad.addColorStop(1, "rgba(74, 222, 128, 0.2)");
+    } else {
+      grad.addColorStop(0, "rgba(255, 87, 34, 0.2)");
+      grad.addColorStop(0.5, "rgba(255, 179, 0, 0.95)");
+      grad.addColorStop(1, "rgba(255, 87, 34, 0.2)");
+    }
+
+    // Background harmonic wave for ambient depth
+    visualizerCtx.beginPath();
+    visualizerCtx.strokeStyle = isListening ? "rgba(74, 222, 128, 0.2)" : "rgba(255, 87, 34, 0.2)";
+    visualizerCtx.lineWidth = 1.2;
+    const bgSteps = 24;
+    for (let i = 0; i <= bgSteps; i++) {
+      const x = (i / bgSteps) * width;
+      const norm = i / bgSteps;
+      const envelope = Math.sin(norm * Math.PI); // Pin to midY at left and right edges
+      const y = midY + Math.sin(norm * 5 - vizPhase * 0.9) * (dynamicAmplitude * 0.55) * envelope;
+      if (i === 0) visualizerCtx.moveTo(x, y);
+      else visualizerCtx.lineTo(x, y);
+    }
+    visualizerCtx.stroke();
+
+    // Foreground primary responsive wave
+    visualizerCtx.beginPath();
+    visualizerCtx.strokeStyle = grad;
+    visualizerCtx.lineWidth = 2.2;
+    visualizerCtx.lineCap = "round";
+    visualizerCtx.shadowColor = isListening ? "rgba(34, 197, 94, 0.5)" : "rgba(255, 179, 0, 0.5)";
+    visualizerCtx.shadowBlur = 5;
+
+    const fgSteps = 36;
+    for (let i = 0; i <= fgSteps; i++) {
+      const x = (i / fgSteps) * width;
+      const norm = i / fgSteps;
+      const envelope = Math.sin(norm * Math.PI); // Taper seamlessly to zero at edges
+      const jitter = (freqBuffer && i < freqBuffer.length) ? (freqBuffer[i] / 255) * 4 * envelope : 0;
+      const y = midY + (Math.sin(norm * 6.2 + vizPhase) * dynamicAmplitude + jitter) * envelope;
+
+      if (i === 0) visualizerCtx.moveTo(x, y);
+      else visualizerCtx.lineTo(x, y);
+    }
+    visualizerCtx.stroke();
+    visualizerCtx.shadowBlur = 0;
+
+    requestAnimationFrame(renderAudioVisualizer);
+  }
+
+  // Start visualizer animation loop
+  renderAudioVisualizer();
+
+  // ==========================================
   // CALL BELLA PHONE ORDERING EXPERIENCE
   // ==========================================
 
@@ -250,7 +368,16 @@ document.addEventListener("DOMContentLoaded", () => {
     btnTriggerCall.addEventListener("click", () => {
       callBtnText.innerText = "Call Bella to Order";
       btnStartCall.classList.remove("dialing");
+      if (precallAccentSelect) precallAccentSelect.value = currentAccentId;
       callScreenOverlay.classList.remove("hidden");
+    });
+  }
+
+  if (precallAccentSelect) {
+    precallAccentSelect.addEventListener("change", () => {
+      const selectedAccent = precallAccentSelect.value || "standard";
+      setActiveAccent(selectedAccent);
+      syncAccentPills(selectedAccent);
     });
   }
 
@@ -262,6 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
         pill.classList.remove("active");
       }
     });
+    if (precallAccentSelect) precallAccentSelect.value = accentId;
     const acc = getActiveAccent();
     bellaSubtext.innerText = `${acc.name} • ${acc.tagline}`;
   }
@@ -828,7 +956,8 @@ document.addEventListener("DOMContentLoaded", () => {
           if (mods.length > 0) modText = `<div class="cart-item-modifiers">${mods.join(" • ")}</div>`;
         }
 
-        const lineTotal = (entry.menuItem.price * entry.quantity).toFixed(2);
+        const itemUnitPrice = entry.menuItem.price + (entry.modifiers && entry.modifiers.extraConsome ? 3.00 : 0);
+        const lineTotal = (itemUnitPrice * entry.quantity).toFixed(2);
 
         itemCard.innerHTML = `
           <div class="cart-item-top">
@@ -860,6 +989,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
         drawerItemsList.appendChild(itemCard);
       });
+    }
+
+    const deliveryRow = document.getElementById("cart-delivery-row");
+    const deliveryEl = document.getElementById("cart-delivery-amount");
+    if (deliveryRow && deliveryEl) {
+      if (summary.fulfillment === "delivery") {
+        deliveryRow.style.display = "flex";
+        deliveryEl.innerText = `$${summary.deliveryFee.toFixed(2)}`;
+      } else {
+        deliveryRow.style.display = "none";
+      }
     }
 
     subtotalEl.innerText = `$${summary.subtotal.toFixed(2)}`;
@@ -904,12 +1044,26 @@ document.addEventListener("DOMContentLoaded", () => {
     summary.items.forEach(entry => {
       const row = document.createElement("div");
       row.className = "receipt-row";
+      const itemUnitPrice = entry.menuItem.price + (entry.modifiers && entry.modifiers.extraConsome ? 3.00 : 0);
+      const lineTotal = (itemUnitPrice * entry.quantity).toFixed(2);
+      const extraTag = entry.modifiers && entry.modifiers.extraConsome ? ' <span style="color: var(--gold); font-size: 11px;">(+Consomé)</span>' : '';
       row.innerHTML = `
-        <span>${entry.quantity}x ${escapeHtml(entry.menuItem.name)}</span>
-        <span>$${(entry.menuItem.price * entry.quantity).toFixed(2)}</span>
+        <span>${entry.quantity}x ${escapeHtml(entry.menuItem.name)}${extraTag}</span>
+        <span>$${lineTotal}</span>
       `;
       receiptItemsContainer.appendChild(row);
     });
+
+    const receiptDeliveryRow = document.getElementById("receipt-delivery-row");
+    const receiptDeliveryEl = document.getElementById("receipt-delivery-amount");
+    if (receiptDeliveryRow && receiptDeliveryEl) {
+      if (summary.fulfillment === "delivery") {
+        receiptDeliveryRow.style.display = "flex";
+        receiptDeliveryEl.innerText = `$${summary.deliveryFee.toFixed(2)}`;
+      } else {
+        receiptDeliveryRow.style.display = "none";
+      }
+    }
 
     document.getElementById("receipt-subtotal").innerText = `$${summary.subtotal.toFixed(2)}`;
     document.getElementById("receipt-tax").innerText = `$${summary.tax.toFixed(2)}`;
@@ -927,10 +1081,32 @@ document.addEventListener("DOMContentLoaded", () => {
     receiptModal.classList.remove("open");
   });
 
+  function updateCustomizeModalPrice() {
+    if (!pendingCustomItem) return;
+    const qty = Math.max(1, parseInt(document.getElementById("custom-qty-input").value) || 1);
+    const extraConsome = document.getElementById("custom-extra-consome-check")?.checked ? 3.00 : 0.00;
+    const total = (pendingCustomItem.price + extraConsome) * qty;
+    document.getElementById("custom-item-price").innerText = `$${total.toFixed(2)}`;
+  }
+
+  const customQtyInput = document.getElementById("custom-qty-input");
+  const customConsomeCheck = document.getElementById("custom-extra-consome-check");
+  if (customQtyInput) {
+    customQtyInput.addEventListener("input", updateCustomizeModalPrice);
+    customQtyInput.addEventListener("change", updateCustomizeModalPrice);
+  }
+  if (customConsomeCheck) {
+    customConsomeCheck.addEventListener("change", updateCustomizeModalPrice);
+  }
+
   function promptCustomizeItem(item) {
     pendingCustomItem = item;
     document.getElementById("custom-item-name").innerText = item.name;
-    document.getElementById("custom-item-price").innerText = `$${item.price.toFixed(2)}`;
+    
+    // Reset modal state to defaults
+    if (customQtyInput) customQtyInput.value = "1";
+    if (customConsomeCheck) customConsomeCheck.checked = false;
+    updateCustomizeModalPrice();
     
     const meatGroup = document.getElementById("custom-meat-group");
     const meatSelect = document.getElementById("custom-meat-select");
@@ -998,6 +1174,17 @@ document.addEventListener("DOMContentLoaded", () => {
     customizeModal.classList.remove("open");
   });
 
+  // Click on backdrop to close modals
+  customizeModal.addEventListener("click", (e) => {
+    if (e.target === customizeModal) customizeModal.classList.remove("open");
+  });
+  fullMenuModal.addEventListener("click", (e) => {
+    if (e.target === fullMenuModal) fullMenuModal.classList.remove("open");
+  });
+  receiptModal.addEventListener("click", (e) => {
+    if (e.target === receiptModal) receiptModal.classList.remove("open");
+  });
+
   function openFullMenuModal() {
     const listEl = document.getElementById("full-menu-list");
     listEl.innerHTML = "";
@@ -1058,9 +1245,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Spacebar or Escape to interrupt Bella immediately
+  // Spacebar or Escape to interrupt Bella immediately (without interfering with input fields)
   document.addEventListener("keydown", (e) => {
-    if ((e.key === "Escape" || (e.key === " " && document.activeElement !== chatInput)) && voiceController.isSpeaking) {
+    const isFormElement = document.activeElement && ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName);
+    if ((e.key === "Escape" || (e.key === " " && !isFormElement)) && voiceController.isSpeaking) {
       voiceController.stopSpeaking();
     }
   });

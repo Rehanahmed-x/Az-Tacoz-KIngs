@@ -51,11 +51,29 @@ class OrderEngine {
   }
 
   removeItemByName(keyword) {
-    const kw = keyword.toLowerCase();
-    const index = this.cart.findIndex(entry => 
-      entry.menuItem.name.toLowerCase().includes(kw) ||
-      entry.menuItem.id.toLowerCase().includes(kw)
+    if (!keyword || !this.cart.length) return null;
+    const raw = keyword.toLowerCase().trim();
+    // Clean out conversational filler words that might be attached
+    const cleanKw = raw.replace(/\b(wait|hey|can you|could you|please|actually|just|the|an|a|my)\b/gi, " ").replace(/\s+/g, " ").trim();
+    
+    // 1. Try match with cleaned keyword
+    let index = this.cart.findIndex(entry => 
+      entry.menuItem.name.toLowerCase().includes(cleanKw) ||
+      entry.menuItem.id.toLowerCase().includes(cleanKw)
     );
+
+    // 2. If not found, match by significant tokens (e.g. "ramen", "quesataco", "fries", "taco", "consome")
+    if (index === -1) {
+      const tokens = cleanKw.split(/\s+/).filter(t => t.length >= 3);
+      for (const tok of tokens) {
+        index = this.cart.findIndex(entry => 
+          entry.menuItem.name.toLowerCase().includes(tok) ||
+          entry.menuItem.id.toLowerCase().includes(tok)
+        );
+        if (index > -1) break;
+      }
+    }
+
     if (index > -1) {
       const removed = this.cart.splice(index, 1)[0];
       this.notify();
@@ -221,10 +239,10 @@ class OrderEngine {
       }
     }
 
-    // 1. Item Removal Intent ("remove the ramen", "take off tacos", "cancel fries")
+    // 1. Item Removal Intent ("remove the ramen", "take off tacos", "cancel fries", "wait remove the ramen please")
     if (/\b(remove|delete|take off|take out|cancel|drop|quitar|eliminar)\b/i.test(text) && !/\b(order|add)\b/i.test(text)) {
       result.intent = "order_remove";
-      result.removeItemQuery = text.replace(/\b(remove|delete|take off|take out|cancel|drop|quitar|eliminar|the|an|a|my|please)\b/gi, "").trim();
+      result.removeItemQuery = text.replace(/\b(remove|delete|take off|take out|cancel|drop|quitar|eliminar|the|an|a|my|please|wait|hey|actually)\b/gi, " ").replace(/\s+/g, " ").trim();
       return result;
     }
 
@@ -504,60 +522,68 @@ class OrderEngine {
       const cleanSeg = segment.trim();
       if (!cleanSeg) continue;
 
+      let bestMatcher = null;
+      let bestKey = null;
+      let bestLen = 0;
+
       for (const matcher of itemMatchers) {
-        let matchedKey = null;
         for (const key of matcher.keys) {
-          if (cleanSeg.includes(key)) {
-            matchedKey = key;
-            break;
+          const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const keyRegex = new RegExp("(?:^|\\s)" + escaped + "(?:\\s|$)", "i");
+          if (keyRegex.test(cleanSeg) || cleanSeg === key) {
+            if (key.length > bestLen) {
+              bestLen = key.length;
+              bestMatcher = matcher;
+              bestKey = key;
+            }
           }
         }
+      }
 
-        if (matchedKey) {
-          // Prepare text for quantity detection:
-          // Remove embedded numerals belonging to the dish title (e.g. 50 in $50 taco box, 3 in 3 quesataco combo)
-          let segForQty = cleanSeg;
-          if (matcher.id === "item_taco_box_50") {
-            segForQty = segForQty.replace(/\b(50|\$50|fifty)\s*(dollar)?\s*(taco)?\s*(box)?\b/gi, "box");
-          } else if (matcher.id === "item_combo_3qt") {
-            segForQty = segForQty.replace(/\b(3|three)\s*quesataco/gi, "quesataco");
-          } else if (matcher.id === "item_birria_balls_deal") {
-            segForQty = segForQty.replace(/\b(2|two)\s*birria/gi, "birria");
-          } else if (matcher.id === "item_quesataco_platter" || matcher.id === "item_street_taco_platter") {
-            segForQty = segForQty.replace(/\b(10|ten)\s*(street)?\s*taco/gi, "platter");
-          }
+      if (bestMatcher) {
+        // Prepare text for quantity detection:
+        // Remove embedded numerals belonging to the dish title (e.g. 50 in $50 taco box, 3 in 3 quesataco combo)
+        let segForQty = cleanSeg;
+        if (bestMatcher.id === "item_taco_box_50") {
+          segForQty = segForQty.replace(/\b(50|\$50|fifty)\s*(dollar)?\s*(taco)?\s*(box)?\b/gi, "box");
+        } else if (bestMatcher.id === "item_combo_3qt") {
+          segForQty = segForQty.replace(/\b(3|three)\s*quesataco/gi, "quesataco");
+        } else if (bestMatcher.id === "item_birria_balls_deal") {
+          segForQty = segForQty.replace(/\b(2|two)\s*birria/gi, "birria");
+        } else if (bestMatcher.id === "item_quesataco_platter" || bestMatcher.id === "item_street_taco_platter") {
+          segForQty = segForQty.replace(/\b(10|ten)\s*(street)?\s*taco/gi, "platter");
+        }
 
-          // Extract quantity
-          let quantity = 1;
-          const numPattern = /(\b(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|un|una|uno|dos|tres|cuatro|cinco|seis|ek|do|teen)\b)/i;
-          const numMatch = segForQty.match(numPattern);
-          if (numMatch) {
-            const rawNum = numMatch[1].toLowerCase();
-            quantity = numberWords[rawNum] || parseInt(rawNum) || 1;
-            if (quantity > 20) quantity = 1; // sanity limit
-          }
+        // Extract quantity
+        let quantity = 1;
+        const numPattern = /(\b(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|un|una|uno|dos|tres|cuatro|cinco|seis|ek|do|teen)\b)/i;
+        const numMatch = segForQty.match(numPattern);
+        if (numMatch) {
+          const rawNum = numMatch[1].toLowerCase();
+          quantity = numberWords[rawNum] || parseInt(rawNum) || 1;
+          if (quantity > 20) quantity = 1; // sanity limit
+        }
 
-          const menuItem = MENU_ITEMS.find(m => m.id === matcher.id);
-          if (menuItem && !result.itemsFound.some(f => f.item.id === menuItem.id)) {
-            const modifiers = {};
+        const menuItem = MENU_ITEMS.find(m => m.id === bestMatcher.id);
+        if (menuItem && !result.itemsFound.some(f => f.item.id === menuItem.id)) {
+          const modifiers = {};
 
-            if (cleanSeg.includes("asada")) modifiers.meat = "Carne Asada";
-            else if (cleanSeg.includes("chicken") || cleanSeg.includes("pollo")) modifiers.meat = "Pollo Asado";
-            else if (cleanSeg.includes("pastor")) modifiers.meat = "Al Pastor";
-            else modifiers.meat = "Birria de Res (Beef)";
+          if (cleanSeg.includes("asada")) modifiers.meat = "Carne Asada";
+          else if (cleanSeg.includes("chicken") || cleanSeg.includes("pollo")) modifiers.meat = "Pollo Asado";
+          else if (cleanSeg.includes("pastor")) modifiers.meat = "Al Pastor";
+          else modifiers.meat = "Birria de Res (Beef)";
 
-            if (cleanSeg.includes("no onion") || cleanSeg.includes("sin cebolla")) modifiers.noOnion = true;
-            if (cleanSeg.includes("no cilantro") || cleanSeg.includes("sin cilantro")) modifiers.noCilantro = true;
-            if (cleanSeg.includes("horchata")) modifiers.flavor = "Horchata";
-            else if (cleanSeg.includes("jamaica")) modifiers.flavor = "Jamaica (Hibiscus)";
-            else if (cleanSeg.includes("jarrito")) modifiers.flavor = "Jarritos";
+          if (cleanSeg.includes("no onion") || cleanSeg.includes("sin cebolla")) modifiers.noOnion = true;
+          if (cleanSeg.includes("no cilantro") || cleanSeg.includes("sin cilantro")) modifiers.noCilantro = true;
+          if (cleanSeg.includes("horchata")) modifiers.flavor = "Horchata";
+          else if (cleanSeg.includes("jamaica")) modifiers.flavor = "Jamaica (Hibiscus)";
+          else if (cleanSeg.includes("jarrito")) modifiers.flavor = "Jarritos";
 
-            result.itemsFound.push({
-              item: menuItem,
-              quantity: quantity,
-              modifiers: modifiers
-            });
-          }
+          result.itemsFound.push({
+            item: menuItem,
+            quantity: quantity,
+            modifiers: modifiers
+          });
         }
       }
     }

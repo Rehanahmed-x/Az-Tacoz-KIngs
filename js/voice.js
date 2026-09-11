@@ -17,6 +17,7 @@ class VoiceController {
     this.currentSpokenText = "";
     this.speakStartTime = 0;
     this.allowBargeIn = true;
+    this.autoRelisten = false;
     this.onStateChange = null;
     this.onInterimTranscript = null;
     this.onSpeechResult = null;
@@ -104,14 +105,7 @@ class VoiceController {
           const avg = sum / buffer.length;
           const level = Math.min(1, avg / 45);
 
-          // Audio level barge-in: If user speaks loudly while Bella is speaking, cut speech immediately!
-          if (this.isSpeaking && level > 0.28 && (Date.now() - this.speakStartTime > 400)) {
-            this.stopSpeaking();
-            if (this.onStateChange) {
-              this.onStateChange({ isSpeaking: false, isInterrupted: true, isListening: true });
-            }
-          }
-
+          // Update audio level meter for microphone button pulsation
           if (this.onStateChange) this.onStateChange({ audioLevel: level });
         }
         requestAnimationFrame(pollAudio);
@@ -178,7 +172,7 @@ class VoiceController {
       if (event.error === "not-allowed") {
         msg = "Microphone blocked. Click the lock/mic icon in the browser address bar to Allow.";
       } else if (event.error === "network") {
-        msg = "Speech recognition needs localhost or internet. Use Start_Az_Tacos_King.bat!";
+        msg = "Speech recognition needs an active internet connection or HTTPS.";
       }
 
       if (this.onStateChange) {
@@ -239,6 +233,10 @@ class VoiceController {
         const fullPrompt = (this.transcriptBuffer || interim).trim();
         if (fullPrompt.length >= 2) {
           this.transcriptBuffer = "";
+          // If not in a continuous phone call, stop listening after this utterance
+          if (!this.autoRelisten) {
+            this.stopListening();
+          }
           if (this.onSpeechResult) {
             this.onSpeechResult(fullPrompt);
           }
@@ -250,12 +248,14 @@ class VoiceController {
   // Phonetic smoothing for natural TTS
   enhancePhonetics(text, accentId = "standard") {
     let clean = text
-      .replace(/[\u{1F600}-\u{1F6FF}|[\u{1F300}-\u{1F5FF}|[\u{1F680}-\u{1F6FF}|[\u{2600}-\u{26FF}]/gu, '')
+      .replace(/<[^>]*>/g, ' ') // Strip all HTML tags so Bella never reads tags
+      .replace(/\p{Extended_Pictographic}/gu, '') // Cleanly strip all Unicode emojis
       .replace(/[*_~`#]/g, '')
       .replace(/\$\s?([0-9]+)\.([0-9]{2})/g, '$1 dollars and $2 cents')
       .replace(/\$\s?([0-9]+)/g, '$1 dollars')
       .replace(/\b8\s?oz\b/gi, '8 ounce')
-      .replace(/\b16\s?oz\b/gi, '16 ounce');
+      .replace(/\b16\s?oz\b/gi, '16 ounce')
+      .replace(/\bATK\b/g, 'Az Tacos King');
 
     clean = clean
       .replace(/\bquesatacos\b/gi, "kay-sah tacos")
@@ -268,7 +268,7 @@ class VoiceController {
       .replace(/\bórale\b/gi, "oh-rah-lay")
       .replace(/\bprovecho\b/gi, "pro-veh-choh");
 
-    return clean.trim();
+    return clean.replace(/\s+/g, ' ').trim();
   }
 
   speak(text, accentObj = null, lang = "en", onDoneCallback = null) {
@@ -320,11 +320,13 @@ class VoiceController {
 
     let speechEnded = false;
     let watchdogTimer = null;
+    let keepAliveInterval = null;
 
     const handleSpeechEnd = () => {
       if (speechEnded) return;
       speechEnded = true;
       if (watchdogTimer) clearTimeout(watchdogTimer);
+      if (keepAliveInterval) clearInterval(keepAliveInterval);
 
       this.isSpeaking = false;
       this.currentSpokenText = "";
@@ -357,6 +359,15 @@ class VoiceController {
         handleSpeechEnd();
       }
     }, maxDurationMs);
+
+    keepAliveInterval = setInterval(() => {
+      if (this.isSpeaking && this.synth && this.synth.speaking) {
+        this.synth.pause();
+        this.synth.resume();
+      } else {
+        clearInterval(keepAliveInterval);
+      }
+    }, 8000);
 
     this.synth.speak(utterance);
   }
