@@ -55,6 +55,45 @@ document.addEventListener("DOMContentLoaded", () => {
   const liveVoiceBadge = document.getElementById("live-voice-badge");
   const liveVoiceStatusText = document.getElementById("live-voice-status-text");
 
+  // ==========================================
+  // THEME CONTROLLER (Light Mode Default + Dark Mode Switcher)
+  // ==========================================
+  const themeToggleBtn = document.getElementById("theme-toggle-btn");
+  const themeToggleIcon = document.getElementById("theme-toggle-icon");
+  const themeToggleLabel = document.getElementById("theme-toggle-label");
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+
+  // Default to Light theme as explicitly requested
+  const savedTheme = localStorage.getItem("atk_theme") || "light";
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("atk_theme", theme);
+
+    if (theme === "dark") {
+      if (themeToggleIcon) themeToggleIcon.textContent = "☀️";
+      if (themeToggleLabel) themeToggleLabel.textContent = "Light";
+      if (themeToggleBtn) themeToggleBtn.title = "Switch to Light Mode";
+      if (metaThemeColor) metaThemeColor.setAttribute("content", "#0D0D12");
+    } else {
+      if (themeToggleIcon) themeToggleIcon.textContent = "🌙";
+      if (themeToggleLabel) themeToggleLabel.textContent = "Dark";
+      if (themeToggleBtn) themeToggleBtn.title = "Switch to Dark Mode";
+      if (metaThemeColor) metaThemeColor.setAttribute("content", "#FAF8F5");
+    }
+  }
+
+  // Apply chosen theme immediately
+  applyTheme(savedTheme);
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "light";
+      const nextTheme = current === "dark" ? "light" : "dark";
+      applyTheme(nextTheme);
+    });
+  }
+
   // Detect file:// protocol and show helpful prompt
   if (window.location.protocol === "file:") {
     const fileBanner = document.getElementById("file-protocol-warning");
@@ -1195,13 +1234,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (catItems.length === 0) return;
 
       const catHeader = document.createElement("h4");
-      catHeader.style.cssText = "margin-top: 14px; margin-bottom: 8px; color: var(--gold); font-size: 14px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 4px;";
+      catHeader.style.cssText = "margin-top: 16px; margin-bottom: 8px; color: var(--primary); font-size: 14px; font-weight: 800; border-bottom: 2px solid var(--border-subtle); padding-bottom: 4px; display: flex; align-items: center; gap: 6px;";
       catHeader.innerText = cat;
       listEl.appendChild(catHeader);
 
       catItems.forEach(item => {
         const row = document.createElement("div");
-        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed rgba(255,255,255,0.06);";
+        row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border-subtle);";
         row.innerHTML = `
           <div>
             <div style="font-weight: 700; font-size: 13px;">${escapeHtml(item.name)}</div>
