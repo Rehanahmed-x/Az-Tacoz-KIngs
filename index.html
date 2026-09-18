@@ -4,8 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#090A0F">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Az Tacos King">
+  <meta name="format-detection" content="telephone=no">
   <title>Az Tacos King | Bella - AI Voice & Online Ordering</title>
-  <meta name="description" content="Order authentic Mexican birria, cheesy quesatacos, and dipping consomé at Az Tacos King / Birria Kingz ATK on 2030 W Camelback Rd, Phoenix, AZ. Featuring Bella, your AI voice ordering concierge with authentic US regional accents!">
+  <meta name="description" content="Order authentic Mexican birria, cheesy quesatacos, and dipping consomé at Az Tacos King / Birria Kingz ATK. Featuring Bella, your AI voice ordering concierge with authentic US regional accents!">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,6 +24,7 @@
        CALL SCREEN OVERLAY (Phone Call Experience)
        ========================================= -->
   <div id="call-screen-overlay" class="call-screen-overlay hidden" aria-modal="true" role="dialog">
+    <button id="call-screen-close" class="call-screen-close-btn" aria-label="Close Call Screen" title="Close">✕</button>
     <div class="call-restaurant-badge">
       <span>🌮 Az Tacos King • Birria Kingz ATK</span>
     </div>
@@ -36,7 +41,7 @@
     <div class="call-screen-info">
       <h2>Call Bella</h2>
       <p class="caller-title">AI Voice & Phone Order Specialist</p>
-      <p class="caller-line">Store Phone: (480) 410-1914 • 2030 W Camelback Rd, Phoenix</p>
+      <p class="caller-line">Demo Store Phone: (555) 410-TACO • 2030 W Camelback Rd (Demo), Phoenix</p>
     </div>
 
     <!-- Accent Selection Prior to Calling -->
@@ -94,7 +99,7 @@
         <h1>Az Tacos <span class="highlight">King</span></h1>
         <div class="brand-status-row">
           <span class="live-pulse-dot"></span>
-          <span>Open Daily • 2030 W Camelback Rd, Phoenix</span>
+          <span>Open Daily • 2030 W Camelback Rd (Demo), Phoenix</span>
         </div>
       </div>
     </div>
@@ -178,6 +183,19 @@
       </div>
     </div>
   </section>
+
+  <!-- Mobile View Segmented Switcher (Visible on Mobile & Tablets) -->
+  <div class="mobile-view-switcher" id="mobile-view-switcher" role="tablist" aria-label="Switch Views">
+    <button id="tab-btn-menu" class="mobile-view-tab active" data-view="menu" role="tab" aria-selected="true">
+      <span class="tab-emoji">🌮</span>
+      <span class="tab-text">Food Menu</span>
+    </button>
+    <button id="tab-btn-voice" class="mobile-view-tab" data-view="voice" role="tab" aria-selected="false">
+      <span class="tab-emoji">👩‍🍳</span>
+      <span class="tab-text">Bella Voice AI</span>
+      <span class="mobile-tab-live-dot" title="Voice Ready"></span>
+    </button>
+  </div>
 
   <!-- Main Dual-Column Interactive Ordering Studio -->
   <main class="main-app-container">
@@ -514,7 +532,7 @@
         </div>
 
         <div style="font-size: 12px; color: var(--text-dim);" id="receipt-address">
-          Pickup at: 2030 W Camelback Rd, Phoenix, AZ 85015-3441
+          Pickup at: 2030 W Camelback Rd (Demo Flagship), Phoenix, AZ 85015
         </div>
 
         <div id="receipt-items-container" class="receipt-items-list">
@@ -546,20 +564,46 @@
 
         <!-- Quick Action Links -->
         <div class="receipt-links-group">
-          <a href="https://birriakingzatk.square.site/?location_id=LP862J1T4DZXK&fulfillment=PICKUP" target="_blank" rel="noopener" class="btn-primary">
-            <span>💳 Open Official Square Checkout</span>
+          <a href="https://birriakingzatk.square.site/demo" target="_blank" rel="noopener" class="btn-primary">
+            <span>💳 Open Demo Square Checkout</span>
             <span>↗</span>
           </a>
-          <a href="https://maps.google.com/?q=2030+W+Camelback+Rd,+Phoenix,+AZ+85015" target="_blank" rel="noopener" class="btn-secondary">
-            <span>📍 Directions to 2030 W Camelback Rd, Phoenix</span>
+          <a href="https://maps.google.com/?q=Phoenix,+AZ" target="_blank" rel="noopener" class="btn-secondary">
+            <span>📍 Directions (Demo Location - Phoenix, AZ)</span>
           </a>
-          <a href="tel:+14804101914" class="btn-secondary">
-            <span>📞 Call Kitchen: (480) 410-1914</span>
+          <a href="tel:+15554108226" class="btn-secondary">
+            <span>📞 Call Kitchen: (555) 410-TACO</span>
           </a>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Mobile Floating Bottom Navigation Dock (Phones & Tablets) -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav" aria-label="Mobile Navigation">
+    <button id="mobile-nav-menu" class="mobile-nav-item active" data-view="menu" title="Browse Menu">
+      <span class="nav-icon">🌮</span>
+      <span class="nav-label">Menu</span>
+    </button>
+    <button id="mobile-nav-voice" class="mobile-nav-item" data-view="voice" title="Bella AI Voice Studio">
+      <div class="nav-voice-wrapper">
+        <span class="nav-icon voice-nav-icon">👩‍🍳</span>
+        <span id="mobile-voice-pulse" class="mobile-nav-pulse"></span>
+      </div>
+      <span class="nav-label">Bella Voice</span>
+    </button>
+    <button id="mobile-nav-call" class="mobile-nav-item call-action" title="Call Bella Now">
+      <div class="call-icon-circle">📞</div>
+      <span class="nav-label">Call</span>
+    </button>
+    <button id="mobile-nav-cart" class="mobile-nav-item" title="View Order Bag">
+      <div class="nav-cart-wrapper">
+        <span class="nav-icon">🛒</span>
+        <span id="mobile-cart-badge" class="mobile-cart-badge">0</span>
+      </div>
+      <span class="nav-label">Bag</span>
+    </button>
+  </nav>
 
   <!-- Application Scripts -->
   <script src="js/menuData.js?v=4.0"></script>

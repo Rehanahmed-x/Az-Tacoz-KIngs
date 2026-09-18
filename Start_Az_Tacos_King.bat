@@ -3,7 +3,7 @@ title Az Tacos King - Bella AI Voice Assistant
 cd /d "%~dp0"
 echo ========================================================
 echo   AZ TACOS KING - BELLA AI VOICE ORDERING DESK
-echo   2030 W Camelback Rd, Phoenix, AZ ^| (480) 410-1914
+echo   2030 W Camelback Rd (Demo Flagship), Phoenix, AZ ^| (555) 410-TACO
 echo ========================================================
 echo.
 echo Starting local secure web server for voice recognition...

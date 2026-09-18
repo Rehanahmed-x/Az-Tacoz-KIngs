@@ -154,6 +154,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // Sync mobile bottom dock voice indicator pulse
+    const mobileVoicePulse = document.getElementById("mobile-voice-pulse");
+    if (mobileVoicePulse) {
+      if (state.isSpeaking || state.isListening) {
+        mobileVoicePulse.classList.add("active");
+      } else {
+        mobileVoicePulse.classList.remove("active");
+      }
+    }
+
     // Audio level meter: button pulses with user's actual voice volume!
     if (state.audioLevel !== undefined && state.audioLevel > 0.05) {
       const scale = Math.min(1.4, 1 + state.audioLevel * 0.4);
@@ -321,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
     syncAccentPills(selectedAccent);
 
     btnStartCall.classList.add("dialing");
-    callBtnText.innerText = "Calling (480) 410-1914...";
+    callBtnText.innerText = `Calling ${RESTAURANT_INFO.phoneDisplay}...`;
     voiceController.playPhoneRing();
 
     // Request microphone permission proactively so user is ready
@@ -409,6 +419,13 @@ document.addEventListener("DOMContentLoaded", () => {
       btnStartCall.classList.remove("dialing");
       if (precallAccentSelect) precallAccentSelect.value = currentAccentId;
       callScreenOverlay.classList.remove("hidden");
+    });
+  }
+
+  const callScreenClose = document.getElementById("call-screen-close");
+  if (callScreenClose) {
+    callScreenClose.addEventListener("click", () => {
+      callScreenOverlay.classList.add("hidden");
     });
   }
 
@@ -962,6 +979,13 @@ document.addEventListener("DOMContentLoaded", () => {
     cartBadge.classList.add("bounce");
     setTimeout(() => cartBadge.classList.remove("bounce"), 350);
 
+    const mobileCartBadge = document.getElementById("mobile-cart-badge");
+    if (mobileCartBadge) {
+      mobileCartBadge.innerText = summary.itemCount;
+      mobileCartBadge.classList.add("bounce");
+      setTimeout(() => mobileCartBadge.classList.remove("bounce"), 350);
+    }
+
     if (summary.items.length === 0) {
       drawerItemsList.innerHTML = `
         <div class="cart-empty-state">
@@ -1389,4 +1413,85 @@ document.addEventListener("DOMContentLoaded", () => {
       voiceController.stopSpeaking();
     }
   });
+
+  // ==========================================
+  // MOBILE VIEW SWITCHER & FLOATING DOCK CONTROLLER
+  // ==========================================
+  const mobileViewTabs = document.querySelectorAll(".mobile-view-tab");
+  const mobileNavItems = document.querySelectorAll(".mobile-nav-item");
+  const menuShowcaseSection = document.getElementById("menu-showcase-section");
+  const voiceConciergeColumn = document.querySelector(".voice-concierge-column");
+  const mobileNavCall = document.getElementById("mobile-nav-call");
+  const mobileNavCart = document.getElementById("mobile-nav-cart");
+
+  function switchMobileView(viewName) {
+    const isVoice = viewName === "voice";
+    document.body.classList.toggle("mobile-view-voice-active", isVoice);
+
+    mobileViewTabs.forEach(tab => {
+      const active = tab.dataset.view === viewName;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", active ? "true" : "false");
+    });
+
+    mobileNavItems.forEach(item => {
+      if (item.dataset.view) {
+        item.classList.toggle("active", item.dataset.view === viewName);
+      }
+    });
+
+    if (isVoice) {
+      scrollToBottom();
+      // On mobile switch to voice, subtly pulse mic button to invite voice input
+      if (micBtn && !voiceController.isListening) {
+        micBtn.classList.add("listening");
+        setTimeout(() => {
+          if (!voiceController.isListening) micBtn.classList.remove("listening");
+        }, 1200);
+      }
+    } else {
+      if (menuShowcaseSection) {
+        menuShowcaseSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  }
+
+  mobileViewTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const view = tab.dataset.view;
+      if (view) switchMobileView(view);
+    });
+  });
+
+  mobileNavItems.forEach(item => {
+    item.addEventListener("click", () => {
+      const view = item.dataset.view;
+      if (view) switchMobileView(view);
+    });
+  });
+
+  if (mobileNavCall) {
+    mobileNavCall.addEventListener("click", () => {
+      if (btnTriggerCall) btnTriggerCall.click();
+    });
+  }
+
+  if (mobileNavCart) {
+    mobileNavCart.addEventListener("click", () => {
+      openCartDrawer();
+    });
+  }
+
+  // Auto-resize audio waveform canvas on screen rotation / resize
+  function resizeVisualizerCanvas() {
+    if (audioVisualizerCanvas && audioVisualizerContainer) {
+      const containerWidth = audioVisualizerContainer.clientWidth;
+      if (containerWidth > 0) {
+        audioVisualizerCanvas.width = Math.min(360, Math.max(180, containerWidth - 20));
+      }
+    }
+  }
+
+  window.addEventListener("resize", resizeVisualizerCanvas);
+  resizeVisualizerCanvas();
 });

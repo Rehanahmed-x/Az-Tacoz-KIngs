@@ -2139,9 +2139,52 @@ img {
 }
 
 /* --------------------------------------------------------------------------
-   13. RESPONSIVE DESIGN (Tablets & Mobile Phones)
+   12B. MOBILE UI COMPONENTS (Close Button, Segmented Switcher & Bottom Dock)
    -------------------------------------------------------------------------- */
-@media (max-width: 1080px) {
+.call-screen-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all var(--transition-fast);
+}
+
+.call-screen-close-btn:hover {
+  background: rgba(239, 68, 68, 0.4);
+  transform: scale(1.08);
+}
+
+/* Hidden by default on Desktop */
+.mobile-view-switcher {
+  display: none;
+}
+
+.mobile-bottom-nav {
+  display: none;
+}
+
+/* --------------------------------------------------------------------------
+   13. COMPREHENSIVE RESPONSIVE DESIGN & MOBILE PHONE ERGONOMICS
+   -------------------------------------------------------------------------- */
+
+/* TABLETS & MEDIUM SCREENS (<= 1024px) */
+@media (max-width: 1024px) {
+  body {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
   .hero-banner-card {
     grid-template-columns: 1fr;
     padding: 30px;
@@ -2152,28 +2195,237 @@ img {
     max-width: 100%;
   }
 
-  .main-app-container {
-    grid-template-columns: 1fr;
+  /* Mobile View Segmented Switcher */
+  .mobile-view-switcher {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px;
+    margin: 0 auto 20px;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-full);
+    max-width: 420px;
+    width: calc(100% - 32px);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 68px;
+    z-index: 85;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
-  .voice-concierge-column {
+  .mobile-view-tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    transition: all var(--transition-fast);
+    position: relative;
+  }
+
+  .mobile-view-tab.active {
+    background: var(--primary-gradient);
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px var(--primary-glow);
+  }
+
+  .mobile-tab-live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+    animation: pulseGreen 1.5s infinite;
+  }
+
+  .main-app-container {
+    grid-template-columns: 1fr;
+    padding: 0 16px 20px;
+    gap: 20px;
+  }
+
+  /* Mobile View Toggling */
+  body:not(.mobile-view-voice-active) .voice-concierge-column {
+    display: none !important;
+  }
+
+  body.mobile-view-voice-active .menu-showcase-column {
+    display: none !important;
+  }
+
+  body.mobile-view-voice-active .voice-concierge-column {
+    display: flex !important;
     position: static;
-    height: 650px;
+    height: calc(100dvh - 160px);
+    min-height: 540px;
     max-height: none;
+  }
+
+  /* Mobile Bottom Navigation Dock */
+  .mobile-bottom-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(62px + env(safe-area-inset-bottom, 0px));
+    padding: 6px 12px max(8px, env(safe-area-inset-bottom, 8px));
+    background: var(--bg-glass);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--border-medium);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+    z-index: 220;
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    flex: 1;
+    max-width: 80px;
+  }
+
+  .mobile-nav-item .nav-icon {
+    font-size: 20px;
+    transition: transform var(--transition-fast);
+  }
+
+  .mobile-nav-item.active {
+    color: var(--primary);
+  }
+
+  .mobile-nav-item.active .nav-icon {
+    transform: scale(1.15);
+  }
+
+  .nav-voice-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-nav-pulse {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    display: none;
+    box-shadow: 0 0 6px var(--success-glow);
+  }
+
+  .mobile-nav-pulse.active {
+    display: block;
+    animation: pulseGreen 1.2s infinite;
+  }
+
+  .mobile-nav-item.call-action .call-icon-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    box-shadow: 0 3px 12px var(--primary-glow);
+    margin-top: -6px;
+    transition: transform var(--transition-fast);
+  }
+
+  .mobile-nav-item.call-action:active .call-icon-circle {
+    transform: scale(0.92);
+  }
+
+  .nav-cart-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-cart-badge {
+    position: absolute;
+    top: -4px;
+    right: -8px;
+    background: var(--primary);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 800;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    border-radius: var(--radius-full);
+    box-shadow: 0 2px 6px var(--primary-glow);
   }
 }
 
+/* SMARTPHONES & MOBILE SCREENS (<= 768px) */
 @media (max-width: 768px) {
+  /* iOS Safari Auto-Zoom Fix: Minimum 16px on inputs prevents viewport jumping */
+  input, select, textarea,
+  .chat-input, .menu-search-input, .form-input, .form-select {
+    font-size: 16px !important;
+  }
+
   .brand-header {
-    padding: 10px 16px;
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .brand-badge-logo {
+    width: 38px;
+    height: 38px;
+    font-size: 19px;
   }
 
   .brand-info h1 {
-    font-size: 17px;
+    font-size: 16px;
+  }
+
+  .brand-status-row {
+    font-size: 11px;
   }
 
   .brand-status-row span:last-child {
-    display: none;
+    display: inline;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .header-actions .icon-btn {
+    padding: 7px 11px;
+    font-size: 12px;
   }
 
   .header-actions .icon-btn span:last-child {
@@ -2181,35 +2433,288 @@ img {
   }
 
   .restaurant-hero {
-    padding: 20px 16px 16px;
+    padding: 14px 14px 10px;
   }
 
   .hero-banner-card {
-    padding: 24px 18px;
+    padding: 20px 16px;
     border-radius: var(--radius-lg);
+    gap: 18px;
+  }
+
+  .hero-eyebrow {
+    font-size: 11px;
+    padding: 4px 10px;
+    margin-bottom: 12px;
   }
 
   .hero-headline {
-    font-size: 26px;
+    font-size: 24px;
+    line-height: 1.2;
+    margin-bottom: 10px;
   }
 
-  .main-app-container {
-    padding: 0 16px 40px;
+  .hero-description {
+    font-size: 13.5px;
+    margin-bottom: 16px;
+    line-height: 1.5;
   }
 
+  .hero-stats-row {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .hero-stat-pill {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .hero-cta-group {
+    gap: 10px;
+    width: 100%;
+  }
+
+  .btn-hero-call, .btn-hero-menu {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 16px;
+    font-size: 13.5px;
+  }
+
+  .hero-food-mosaic img {
+    height: 210px;
+  }
+
+  .hero-floating-badge {
+    bottom: -10px;
+    right: 5px;
+    padding: 8px 12px;
+  }
+
+  /* Menu Grid on Mobile */
   .menu-grid {
     grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .menu-card-media {
+    height: 160px;
+  }
+
+  .menu-control-panel {
+    padding: 14px;
+  }
+
+  .menu-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .menu-search-wrapper {
+    max-width: 100%;
+  }
+
+  /* Smooth Touch Momentum Scrolling */
+  .menu-cat-tabs,
+  .accent-selector-strip,
+  .client-demo-bar,
+  .quick-chips-wrapper {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  /* Chat Arena on Mobile */
+  .chat-stream-container {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .message-row {
+    max-width: 92%;
+  }
+
+  .msg-bubble {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+
+  .chat-input-arena {
+    padding: 10px 12px;
+  }
+
+  .mic-action-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+
+  .chat-input {
+    padding: 12px 44px 12px 16px;
+  }
+
+  /* Steppers & Finger Touch Targets (Apple HIG >= 44px) */
+  .cart-item-card {
+    padding: 14px 12px;
+  }
+
+  .qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .qty-btn,
+  .cart-qty-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    touch-action: manipulation;
+  }
+
+  .qty-number,
+  .cart-item-qty {
+    font-size: 15px;
+    min-width: 24px;
+  }
+
+  .btn-card-add {
+    padding: 9px 18px;
+    font-size: 13px;
+  }
+
+  /* Modals: Native Mobile Bottom-Sheet Experience */
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 24px 24px 0 0;
+    max-height: 90dvh;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+  }
+
+  .modal-overlay.open .modal-card {
+    transform: translateY(0);
   }
 
   .cart-drawer {
     max-width: 100%;
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  }
+
+  /* Call Screen Overlay: Full Mobile Screen Fit */
+  .call-screen-overlay {
+    height: 100dvh;
+    padding: 24px 18px max(24px, env(safe-area-inset-bottom, 24px));
+    justify-content: space-around;
+  }
+
+  .caller-avatar-stage {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 12px;
+  }
+
+  .caller-avatar-circle {
+    width: 78px;
+    height: 78px;
+    font-size: 36px;
+  }
+
+  .call-screen-info h2 {
+    font-size: 24px;
+  }
+
+  .call-screen-accent-picker {
+    margin-bottom: 18px;
+    padding: 12px 14px;
+  }
+
+  .btn-start-call {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+
+  /* In-Call Status Bar on Mobile */
+  .in-call-bar {
+    padding: 8px 14px;
+    flex-wrap: nowrap;
+  }
+
+  .in-call-status-group {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .in-call-barge-hint {
+    display: none !important;
+  }
+
+  .btn-end-call {
+    padding: 5px 12px;
+    font-size: 11px;
+    flex-shrink: 0;
   }
 
   .live-speech-toast {
     right: 50%;
     transform: translateX(50%);
-    bottom: 75px;
+    bottom: calc(75px + env(safe-area-inset-bottom, 0px));
     width: 90%;
     justify-content: center;
+    text-align: center;
+  }
+}
+
+/* COMPACT SMARTPHONES (<= 480px, e.g. iPhone SE, 360-390px) */
+@media (max-width: 480px) {
+  .hero-headline {
+    font-size: 22px;
+  }
+
+  .hero-food-mosaic img {
+    height: 180px;
+  }
+
+  .hero-floating-badge {
+    display: none;
+  }
+
+  .mobile-view-tab {
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  .product-card {
+    min-width: 180px;
+  }
+
+  .client-demo-bar,
+  .quick-chips-wrapper {
+    padding: 6px 10px;
+  }
+
+  .demo-chip,
+  .quick-chip {
+    padding: 4px 10px;
+    font-size: 10.5px;
   }
 }

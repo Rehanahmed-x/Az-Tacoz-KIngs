@@ -4,12 +4,12 @@
 const RESTAURANT_INFO = {
   name: "Az Tacos King",
   brandSubtitle: "Birria Kingz ATK",
-  address: "2030 W Camelback Rd, Phoenix, AZ 85015-3441, US",
-  phone: "+1 480-410-1914",
-  phoneDisplay: "(480) 410-1914",
-  email: "aztacosking@gmail.com",
-  squareUrl: "https://birriakingzatk.square.site/?location_id=LP862J1T4DZXK&fulfillment=PICKUP",
-  mapsUrl: "https://maps.google.com/?q=2030+W+Camelback+Rd,+Phoenix,+AZ+85015",
+  address: "2030 W Camelback Rd (Demo Flagship), Phoenix, AZ 85015",
+  phone: "+1 555-410-8226",
+  phoneDisplay: "(555) 410-TACO",
+  email: "demo@aztacosking.com",
+  squareUrl: "https://birriakingzatk.square.site/demo",
+  mapsUrl: "https://maps.google.com/?q=Phoenix,+AZ",
   hours: "Open Daily • 10:30 AM - 10:00 PM",
   taxRate: 0.086 // Phoenix, AZ tax rate 8.6%
 };
