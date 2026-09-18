@@ -63,8 +63,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const themeToggleLabel = document.getElementById("theme-toggle-label");
   const metaThemeColor = document.querySelector('meta[name="theme-color"]');
 
-  // Default to Light theme as explicitly requested
-  const savedTheme = localStorage.getItem("atk_theme") || "light";
+  // Default to Dark Luxe theme
+  const savedTheme = localStorage.getItem("atk_theme") || "dark";
 
   function applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
@@ -1276,6 +1276,104 @@ document.addEventListener("DOMContentLoaded", () => {
     const now = new Date();
     return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
+
+  // ==========================================
+  // INTERACTIVE CULINARY MENU SHOWCASE
+  // ==========================================
+  const menuGrid = document.getElementById("menu-grid");
+  const menuCatTabs = document.querySelectorAll(".menu-cat-tab");
+  const menuSearchInput = document.getElementById("menu-search-input");
+  let activeCategory = "All Items";
+  let searchQuery = "";
+
+  function renderMenuShowcase() {
+    if (!menuGrid) return;
+    menuGrid.innerHTML = "";
+
+    const filtered = MENU_ITEMS.filter(item => {
+      const matchCat = (activeCategory === "All Items") || (item.category === activeCategory);
+      const matchSearch = !searchQuery || 
+        item.name.toLowerCase().includes(searchQuery) ||
+        (item.description && item.description.toLowerCase().includes(searchQuery)) ||
+        item.category.toLowerCase().includes(searchQuery);
+      return matchCat && matchSearch;
+    });
+
+    if (filtered.length === 0) {
+      menuGrid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: var(--text-muted);">
+          <div style="font-size: 36px; margin-bottom: 8px;">🌮</div>
+          <div style="font-weight: 700; font-size: 16px; color: var(--text-main);">No menu items found</div>
+          <div style="font-size: 13px; margin-top: 4px;">Try searching for "quesataco", "birria", "ramen", or "horchata"</div>
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "menu-card";
+
+      const badgeHtml = item.badge ? `<span class="menu-card-badge">${item.badge}</span>` : "";
+      const imgUrl = item.image || "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&auto=format&fit=crop&q=80";
+
+      card.innerHTML = `
+        <div class="menu-card-media">
+          <img src="${imgUrl}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=500&auto=format&fit=crop&q=80'">
+          ${badgeHtml}
+          <div class="menu-card-price-tag">$${item.price.toFixed(2)}</div>
+        </div>
+        <div class="menu-card-body">
+          <div class="menu-card-title">${escapeHtml(item.name)}</div>
+          <p class="menu-card-desc">${escapeHtml(item.description || "")}</p>
+          <div class="menu-card-footer">
+            <span class="menu-card-price-display">$${item.price.toFixed(2)}</span>
+            <button class="btn-card-add" data-id="${item.id}" title="Customize & Add to Cart">
+              <span>+ Add</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      card.querySelector(".btn-card-add").addEventListener("click", () => {
+        promptCustomizeItem(item);
+      });
+
+      menuGrid.appendChild(card);
+    });
+  }
+
+  // Category Tab Handlers
+  if (menuCatTabs.length > 0) {
+    menuCatTabs.forEach(tab => {
+      tab.addEventListener("click", () => {
+        menuCatTabs.forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        activeCategory = tab.dataset.cat || "All Items";
+        renderMenuShowcase();
+      });
+    });
+  }
+
+  // Live Menu Search Input
+  if (menuSearchInput) {
+    menuSearchInput.addEventListener("input", (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      renderMenuShowcase();
+    });
+  }
+
+  // Initial render of menu showcase
+  renderMenuShowcase();
+
+  // Initial greeting in Chat Stream
+  setTimeout(() => {
+    const initialAccent = getActiveAccent();
+    const initialGreeting = initialAccent.greetings[0];
+    appendBellaMessage(initialGreeting);
+    const bestSellers = MENU_ITEMS.filter(i => i.popular).slice(0, 3);
+    appendBellaMessage("Here are our top customer favorites to get you started:", { cards: bestSellers });
+  }, 300);
 
   // Tap or click anywhere to interrupt Bella immediately if speaking
   document.addEventListener("click", (e) => {
