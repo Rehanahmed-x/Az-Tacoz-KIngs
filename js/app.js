@@ -164,16 +164,20 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    // Audio level meter: button pulses with user's actual voice volume!
-    if (state.audioLevel !== undefined && state.audioLevel > 0.05) {
-      const scale = Math.min(1.4, 1 + state.audioLevel * 0.4);
-      micBtn.style.transform = `scale(${scale})`;
-    }
-
     // Error notifications
     if (state.errorMsg && micErrorToast) {
       micErrorToast.style.display = "flex";
       micErrorText.innerText = state.errorMsg;
+    }
+  };
+
+  // Dedicated 60 FPS Audio Level Pulse without state thrashing
+  voiceController.onAudioLevel = (level) => {
+    if (level > 0.05) {
+      const scale = Math.min(1.35, 1 + level * 0.35);
+      micBtn.style.transform = `scale(${scale})`;
+    } else {
+      micBtn.style.transform = "scale(1)";
     }
   };
 
@@ -204,23 +208,54 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ==========================================
-  // COMPACT AUDIO WAVEFORM VISUALIZER
+  // COMPACT AUDIO WAVEFORM VISUALIZER (60/120 FPS GPU Composited)
   // ==========================================
   const audioVisualizerContainer = document.getElementById("audio-visualizer-container");
   const audioVisualizerCanvas = document.getElementById("audio-visualizer-canvas");
-  const visualizerCtx = audioVisualizerCanvas ? audioVisualizerCanvas.getContext("2d") : null;
+  const visualizerCtx = audioVisualizerCanvas ? audioVisualizerCanvas.getContext("2d", { alpha: true, desynchronized: true }) : null;
 
   let vizPhase = 0;
   let vizIdlePulse = 0;
   let currentVizLevel = 0;
+  let cachedFreqBuffer = null;
+  let cachedGradWidth = 0;
+  let cachedListeningGrad = null;
+  let cachedDefaultGrad = null;
+  let lastVizContainerClass = "";
+
+  function getVisualizerGradients(width) {
+    if (width !== cachedGradWidth || !cachedListeningGrad || !cachedDefaultGrad) {
+      cachedGradWidth = width;
+      cachedListeningGrad = visualizerCtx.createLinearGradient(0, 0, width, 0);
+      cachedListeningGrad.addColorStop(0, "rgba(74, 222, 128, 0.2)");
+      cachedListeningGrad.addColorStop(0.5, "rgba(34, 197, 94, 0.95)");
+      cachedListeningGrad.addColorStop(1, "rgba(74, 222, 128, 0.2)");
+
+      cachedDefaultGrad = visualizerCtx.createLinearGradient(0, 0, width, 0);
+      cachedDefaultGrad.addColorStop(0, "rgba(255, 87, 34, 0.2)");
+      cachedDefaultGrad.addColorStop(0.5, "rgba(255, 179, 0, 0.95)");
+      cachedDefaultGrad.addColorStop(1, "rgba(255, 87, 34, 0.2)");
+    }
+    return { listening: cachedListeningGrad, default: cachedDefaultGrad };
+  }
 
   function renderAudioVisualizer() {
     if (!audioVisualizerCanvas || !visualizerCtx) return;
 
+    // Zero-CPU optimization: Skip drawing if tab is in background or canvas is hidden on mobile
+    if (document.hidden || !audioVisualizerCanvas.offsetParent) {
+      requestAnimationFrame(renderAudioVisualizer);
+      return;
+    }
+
     const width = audioVisualizerCanvas.width;
     const height = audioVisualizerCanvas.height;
-    const midY = height / 2;
+    if (width <= 0 || height <= 0) {
+      requestAnimationFrame(renderAudioVisualizer);
+      return;
+    }
 
+    const midY = height / 2;
     visualizerCtx.clearRect(0, 0, width, height);
 
     vizPhase += 0.05;
@@ -230,32 +265,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const isListening = voiceController && voiceController.isListening;
     const analyser = voiceController && voiceController.analyser;
 
-    // Synchronize container state class for glowing pill border
+    // Synchronize container state class only when it actually changes
     if (audioVisualizerContainer) {
-      if (isSpeaking) {
-        audioVisualizerContainer.className = "audio-visualizer-container speaking";
-      } else if (isListening) {
-        audioVisualizerContainer.className = "audio-visualizer-container listening";
-      } else {
-        audioVisualizerContainer.className = "audio-visualizer-container";
+      const nextClass = isSpeaking ? "audio-visualizer-container speaking" :
+                        isListening ? "audio-visualizer-container listening" :
+                        "audio-visualizer-container";
+      if (lastVizContainerClass !== nextClass) {
+        lastVizContainerClass = nextClass;
+        audioVisualizerContainer.className = nextClass;
       }
     }
 
     // Audio frequency / volume calculation
     let targetLevel = 0;
-    let freqBuffer = null;
-
     if (isListening && analyser) {
-      freqBuffer = new Uint8Array(analyser.frequencyBinCount);
-      analyser.getByteFrequencyData(freqBuffer);
+      if (!cachedFreqBuffer || cachedFreqBuffer.length !== analyser.frequencyBinCount) {
+        cachedFreqBuffer = new Uint8Array(analyser.frequencyBinCount);
+      }
+      analyser.getByteFrequencyData(cachedFreqBuffer);
       let sum = 0;
-      for (let i = 0; i < freqBuffer.length; i++) sum += freqBuffer[i];
-      targetLevel = Math.min(1, (sum / freqBuffer.length) / 40);
+      for (let i = 0; i < cachedFreqBuffer.length; i++) sum += cachedFreqBuffer[i];
+      targetLevel = Math.min(1, (sum / cachedFreqBuffer.length) / 40);
     } else if (isSpeaking) {
-      // Dynamic pseudo-rhythmic speech energy when Bella is talking
       targetLevel = 0.5 + 0.3 * Math.sin(vizPhase * 2.5) + 0.2 * Math.cos(vizPhase * 1.8);
     } else {
-      // Idle: subtle pulsing alive baseline (never a flat dead line)
       targetLevel = 0;
     }
 
@@ -266,17 +299,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const idleAmplitude = 2.2 + Math.sin(vizIdlePulse) * 1.2;
     const dynamicAmplitude = idleAmplitude + currentVizLevel * 9;
 
-    // Dynamic wave gradient
-    const grad = visualizerCtx.createLinearGradient(0, 0, width, 0);
-    if (isListening) {
-      grad.addColorStop(0, "rgba(74, 222, 128, 0.2)");
-      grad.addColorStop(0.5, "rgba(34, 197, 94, 0.95)");
-      grad.addColorStop(1, "rgba(74, 222, 128, 0.2)");
-    } else {
-      grad.addColorStop(0, "rgba(255, 87, 34, 0.2)");
-      grad.addColorStop(0.5, "rgba(255, 179, 0, 0.95)");
-      grad.addColorStop(1, "rgba(255, 87, 34, 0.2)");
-    }
+    const grads = getVisualizerGradients(width);
+    const primaryGrad = isListening ? grads.listening : grads.default;
 
     // Background harmonic wave for ambient depth
     visualizerCtx.beginPath();
@@ -286,34 +310,49 @@ document.addEventListener("DOMContentLoaded", () => {
     for (let i = 0; i <= bgSteps; i++) {
       const x = (i / bgSteps) * width;
       const norm = i / bgSteps;
-      const envelope = Math.sin(norm * Math.PI); // Pin to midY at left and right edges
+      const envelope = Math.sin(norm * Math.PI);
       const y = midY + Math.sin(norm * 5 - vizPhase * 0.9) * (dynamicAmplitude * 0.55) * envelope;
       if (i === 0) visualizerCtx.moveTo(x, y);
       else visualizerCtx.lineTo(x, y);
     }
     visualizerCtx.stroke();
 
-    // Foreground primary responsive wave
+    // Ambient glow stroke pass (zero-cost GPU stroke replacement for expensive software shadowBlur)
     visualizerCtx.beginPath();
-    visualizerCtx.strokeStyle = grad;
-    visualizerCtx.lineWidth = 2.2;
+    visualizerCtx.strokeStyle = isListening ? "rgba(34, 197, 94, 0.25)" : "rgba(255, 179, 0, 0.25)";
+    visualizerCtx.lineWidth = 4.5;
     visualizerCtx.lineCap = "round";
-    visualizerCtx.shadowColor = isListening ? "rgba(34, 197, 94, 0.5)" : "rgba(255, 179, 0, 0.5)";
-    visualizerCtx.shadowBlur = 5;
 
     const fgSteps = 36;
     for (let i = 0; i <= fgSteps; i++) {
       const x = (i / fgSteps) * width;
       const norm = i / fgSteps;
-      const envelope = Math.sin(norm * Math.PI); // Taper seamlessly to zero at edges
-      const jitter = (freqBuffer && i < freqBuffer.length) ? (freqBuffer[i] / 255) * 4 * envelope : 0;
+      const envelope = Math.sin(norm * Math.PI);
+      const jitter = (cachedFreqBuffer && i < cachedFreqBuffer.length) ? (cachedFreqBuffer[i] / 255) * 4 * envelope : 0;
       const y = midY + (Math.sin(norm * 6.2 + vizPhase) * dynamicAmplitude + jitter) * envelope;
 
       if (i === 0) visualizerCtx.moveTo(x, y);
       else visualizerCtx.lineTo(x, y);
     }
     visualizerCtx.stroke();
-    visualizerCtx.shadowBlur = 0;
+
+    // Foreground primary responsive crisp wave
+    visualizerCtx.beginPath();
+    visualizerCtx.strokeStyle = primaryGrad;
+    visualizerCtx.lineWidth = 2.2;
+    visualizerCtx.lineCap = "round";
+
+    for (let i = 0; i <= fgSteps; i++) {
+      const x = (i / fgSteps) * width;
+      const norm = i / fgSteps;
+      const envelope = Math.sin(norm * Math.PI);
+      const jitter = (cachedFreqBuffer && i < cachedFreqBuffer.length) ? (cachedFreqBuffer[i] / 255) * 4 * envelope : 0;
+      const y = midY + (Math.sin(norm * 6.2 + vizPhase) * dynamicAmplitude + jitter) * envelope;
+
+      if (i === 0) visualizerCtx.moveTo(x, y);
+      else visualizerCtx.lineTo(x, y);
+    }
+    visualizerCtx.stroke();
 
     requestAnimationFrame(renderAudioVisualizer);
   }
@@ -746,8 +785,8 @@ document.addEventListener("DOMContentLoaded", () => {
         ? `🛍️ <strong>Pickup:</strong> Gratis y listo en 15 a 20 minutos aquí en 2030 W Camelback Rd.<br>🚗 <strong>Delivery:</strong> Entrega a domicilio por solo $4.99 de envío.`
         : `🛍️ <strong>Pickup:</strong> Free and ready in about 15 to 20 minutes right here at 2030 W Camelback Rd.<br>🚗 <strong>Delivery:</strong> We deliver straight to your door with a $4.99 delivery fee!`;
       const speech = isSpanish
-        ? "Ofrecemos pickup gratis listo en 15 a 20 minutos, y entrega a domicilio por 4 dólares y 99 centavos."
-        : "We offer free pickup ready in 15 to 20 minutes right on Camelback Road, or delivery for a 4 dollar and 99 cent fee!";
+        ? `Ofrecemos pickup gratis listo en 15 a 20 minutos en ${RESTAURANT_INFO.address}, y entrega a domicilio por 4 dólares y 99 centavos.`
+        : `We offer free pickup ready in 15 to 20 minutes at our demo location, or delivery for a 4 dollar and 99 cent fee!`;
       appendBellaMessage(reply);
       orderEngine.lastSpokenResponse = speech;
       voiceController.speak(speech, accent, isSpanish ? "es" : "en");
@@ -783,6 +822,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (match.modifiers.flavor) mods.push(match.modifiers.flavor);
         if (match.modifiers.noOnion) mods.push(isSpanish ? "Sin cebolla" : "No onion");
         if (match.modifiers.noCilantro) mods.push(isSpanish ? "Sin cilantro" : "No cilantro");
+        if (match.modifiers.noCheese) mods.push(isSpanish ? "Sin queso" : "No cheese");
+        if (match.modifiers.extraCheese) mods.push(isSpanish ? "Extra queso" : "Extra cheese");
+        if (match.modifiers.salsa) mods.push(match.modifiers.salsa);
+        if (match.modifiers.extraConsome) mods.push(isSpanish ? "Con consomé extra" : "+ Extra Consomé");
         if (mods.length > 0) detail += ` (${mods.join(", ")})`;
 
         addedItemsSummary.push(detail);
@@ -948,7 +991,9 @@ document.addEventListener("DOMContentLoaded", () => {
            Phone: <strong>${RESTAURANT_INFO.phoneDisplay}</strong><br>
            We are ready for Pickup and Delivery right now!`;
       appendBellaMessage(reply);
-      const speech = isSpanish ? "Az Tacos King está ubicado en 2030 West Camelback Road en Phoenix. Estamos abiertos todos los días." : "Az Tacos King is located at 2030 West Camelback Road in Phoenix.";
+      const speech = isSpanish 
+        ? `Az Tacos King está ubicado en ${RESTAURANT_INFO.address}. Estamos abiertos todos los días para pickup y entrega a domicilio.`
+        : `Az Tacos King is located at ${RESTAURANT_INFO.address}. We are open daily for pickup and delivery!`;
       orderEngine.lastSpokenResponse = speech;
       voiceController.speak(speech, accent, isSpanish ? "es" : "en");
       return;
@@ -1015,6 +1060,9 @@ document.addEventListener("DOMContentLoaded", () => {
           if (entry.modifiers.flavor) mods.push(`Flavor: ${entry.modifiers.flavor}`);
           if (entry.modifiers.noOnion) mods.push(`No Onion`);
           if (entry.modifiers.noCilantro) mods.push(`No Cilantro`);
+          if (entry.modifiers.noCheese) mods.push(`No Cheese`);
+          if (entry.modifiers.extraCheese) mods.push(`Extra Cheese`);
+          if (entry.modifiers.salsa) mods.push(entry.modifiers.salsa);
           if (entry.modifiers.extraConsome) mods.push(`+ Extra Consomé ($3.00)`);
           if (mods.length > 0) modText = `<div class="cart-item-modifiers">${mods.join(" • ")}</div>`;
         }
@@ -1136,7 +1184,7 @@ document.addEventListener("DOMContentLoaded", () => {
     receiptModal.classList.add("open");
 
     const accent = getActiveAccent();
-    const voiceMsg = `${accent.thanks} Your order ${summary.orderId} for $${summary.total.toFixed(2)} is confirmed for pickup on Camelback Road. Estimated prep time is 15 to 20 minutes!`;
+    const voiceMsg = `${accent.thanks} Your order ${summary.orderId} for $${summary.total.toFixed(2)} is confirmed for pickup. Estimated prep time is 15 to 20 minutes!`;
     voiceController.speak(voiceMsg, accent);
   });
 
@@ -1482,7 +1530,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Auto-resize audio waveform canvas on screen rotation / resize
+  // Auto-resize audio waveform canvas on screen rotation / resize (debounced with rAF)
+  let resizeRafId = null;
   function resizeVisualizerCanvas() {
     if (audioVisualizerCanvas && audioVisualizerContainer) {
       const containerWidth = audioVisualizerContainer.clientWidth;
@@ -1492,6 +1541,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  window.addEventListener("resize", resizeVisualizerCanvas);
+  window.addEventListener("resize", () => {
+    if (resizeRafId) cancelAnimationFrame(resizeRafId);
+    resizeRafId = requestAnimationFrame(resizeVisualizerCanvas);
+  }, { passive: true });
   resizeVisualizerCanvas();
 });

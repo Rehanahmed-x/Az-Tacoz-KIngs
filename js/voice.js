@@ -97,7 +97,8 @@ class VoiceController {
       source.connect(this.analyser);
 
       const buffer = new Uint8Array(this.analyser.frequencyBinCount);
-      const pollAudio = () => {
+      this.pollRafId = null;
+      this.pollAudio = () => {
         if (this.isListening && this.analyser) {
           this.analyser.getByteFrequencyData(buffer);
           let sum = 0;
@@ -105,12 +106,22 @@ class VoiceController {
           const avg = sum / buffer.length;
           const level = Math.min(1, avg / 45);
 
-          // Update audio level meter for microphone button pulsation
-          if (this.onStateChange) this.onStateChange({ audioLevel: level });
+          // 60 FPS dedicated audio level callback without heavy state machine recomputations
+          if (this.onAudioLevel) {
+            this.onAudioLevel(level);
+          } else if (this.onStateChange) {
+            this.onStateChange({ audioLevel: level });
+          }
+          this.pollRafId = requestAnimationFrame(this.pollAudio);
+        } else {
+          this.pollRafId = null;
+          if (this.onAudioLevel) this.onAudioLevel(0);
         }
-        requestAnimationFrame(pollAudio);
       };
-      pollAudio();
+
+      if (this.isListening && !this.pollRafId) {
+        this.pollRafId = requestAnimationFrame(this.pollAudio);
+      }
     } catch (e) {}
   }
 
@@ -150,10 +161,18 @@ class VoiceController {
     this.recognition.onstart = () => {
       this.isListening = true;
       if (this.onStateChange) this.onStateChange({ isListening: true });
+      if (this.pollAudio && !this.pollRafId) {
+        this.pollRafId = requestAnimationFrame(this.pollAudio);
+      }
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
+      if (this.pollRafId) {
+        cancelAnimationFrame(this.pollRafId);
+        this.pollRafId = null;
+      }
+      if (this.onAudioLevel) this.onAudioLevel(0);
       if (this.onStateChange) this.onStateChange({ isListening: false });
 
       // Automatically restart whenever shouldBeListening is active, so listening never dies!
@@ -423,6 +442,11 @@ class VoiceController {
       } catch(e) {}
     }
     this.isListening = false;
+    if (this.pollRafId) {
+      cancelAnimationFrame(this.pollRafId);
+      this.pollRafId = null;
+    }
+    if (this.onAudioLevel) this.onAudioLevel(0);
     if (this.onStateChange) this.onStateChange({ isListening: false });
   }
 

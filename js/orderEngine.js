@@ -53,22 +53,31 @@ class OrderEngine {
   removeItemByName(keyword) {
     if (!keyword || !this.cart.length) return null;
     const raw = keyword.toLowerCase().trim();
-    // Clean out conversational filler words that might be attached
-    const cleanKw = raw.replace(/\b(wait|hey|can you|could you|please|actually|just|the|an|a|my)\b/gi, " ").replace(/\s+/g, " ").trim();
+    // Clean out conversational filler words and command verbs that might be attached
+    const cleanKw = raw.replace(/\b(wait|hey|can you|could you|please|actually|just|the|an|a|my|order of|orden de|cancel|remove|delete|drop|take off|take out|quitar|eliminar)\b/gi, " ").replace(/\s+/g, " ").trim();
     
-    // 1. Try match with cleaned keyword
+    // 1. Try exact or partial substring match in name, id, or modifiers
     let index = this.cart.findIndex(entry => 
       entry.menuItem.name.toLowerCase().includes(cleanKw) ||
-      entry.menuItem.id.toLowerCase().includes(cleanKw)
+      entry.menuItem.id.toLowerCase().includes(cleanKw) ||
+      (entry.modifiers && entry.modifiers.flavor && entry.modifiers.flavor.toLowerCase().includes(cleanKw)) ||
+      (entry.modifiers && entry.modifiers.meat && entry.modifiers.meat.toLowerCase().includes(cleanKw))
     );
 
-    // 2. If not found, match by significant tokens (e.g. "ramen", "quesataco", "fries", "taco", "consome")
+    // 2. Category matching (e.g. "remove the drink", "cancel my soda", "take off beverage")
+    if (index === -1 && /\b(drink|soda|beverage|bebida|refresco|coke|agua)\b/i.test(cleanKw)) {
+      index = this.cart.findIndex(entry => entry.menuItem.category === "Beverages & Drinks");
+    }
+
+    // 3. Significant token match (e.g. "ramen", "quesataco", "fries", "taco", "consome", "horchata", "burro")
     if (index === -1) {
       const tokens = cleanKw.split(/\s+/).filter(t => t.length >= 3);
       for (const tok of tokens) {
         index = this.cart.findIndex(entry => 
           entry.menuItem.name.toLowerCase().includes(tok) ||
-          entry.menuItem.id.toLowerCase().includes(tok)
+          entry.menuItem.id.toLowerCase().includes(tok) ||
+          (entry.modifiers && entry.modifiers.flavor && entry.modifiers.flavor.toLowerCase().includes(tok)) ||
+          (entry.modifiers && entry.modifiers.meat && entry.modifiers.meat.toLowerCase().includes(tok))
         );
         if (index > -1) break;
       }
@@ -176,12 +185,18 @@ class OrderEngine {
       .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ")
       .replace(/\s+/g, " ");
 
+    // Protect compound phrases containing 'and' or 'y' from getting split
+    s = s.replace(/\bbean\s+(?:and|&)\s+cheese\b/g, "bean_and_cheese");
+    s = s.replace(/\bfrijol(?:es)?\s+y\s+queso\b/g, "frijol_y_queso");
+    s = s.replace(/\brice\s+(?:and|&)\s+beans\b/g, "rice_and_beans");
+    s = s.replace(/\barroz\s+y\s+frijol(?:es)?\b/g, "arroz_y_frijoles");
+
     // Normalize speech-to-text sound-alike mishearings:
     // Quesatacos (all regional phonetic variations)
     s = s.replace(/\b(case of tacos|case uh tacos|case at tacos|casa tacos|kiss uh taco|kiss of taco|quesa tacos|quesatacos|quesa taco|quesataco|qusataco|quesabirria|quesabirrias|quesotaco|quesotacos|kay-sa tacos|kay sa tacos|cheese taco|cheese tacos)\b/g, "quesataco");
 
     // Consomé & Dipping Broth
-    s = s.replace(/\b(dipping broth|dipping soup|beef broth|caldo de birria|caldo|con some|consume|conso may|can so may|conzome|consomme|consome|consomé)\b/g, "consome cup");
+    s = s.replace(/\b(dipping broth|dipping soup|beef broth|caldo de birria|caldo|con some|consume|conso may|can so may|conzome|consomme)\b/g, "consome");
 
     // Birria
     s = s.replace(/\b(beer ya|beer yeah|beeria|barria|berea|bidi a)\b/g, "birria");
@@ -201,8 +216,8 @@ class OrderEngine {
     // King Fries
     s = s.replace(/\b(loaded fries|birria fries|cheese fries)\b/g, "king fries");
 
-    // Burro / Burrito
-    s = s.replace(/\b(birria burrito|king burrito|burrito)\b/g, "king burro");
+    // Burro / Burrito (Only compound names, preserve plain burro/burrito for specific matching)
+    s = s.replace(/\b(birria burrito|king burrito)\b/g, "king burro");
 
     // Birria Balls
     s = s.replace(/\b(potato balls deal|potato ball deal|potato balls|potato ball|two birria balls|birria balls deal)\b/g, "birria balls deal");
@@ -224,18 +239,26 @@ class OrderEngine {
       normalizedText: text
     };
 
-    // 0. Conversational Upsell Confirmation (Fix for "yes / sure / add it / no thanks")
+    // 0. Conversational Upsell Confirmation (Supports "yes", "sure", "add it", AND compound "yes and also a...")
+    let confirmedUpsell = null;
     if (this.lastUpsellItem) {
       if (/\b(yes|yeah|yep|sure|please|go ahead|sounds good|okay|ok|definitely|why not|add it|put it in|sí|si|claro|por favor|por supuesto)\b/i.test(text)) {
-        result.intent = "upsell_confirm";
-        result.upsellItem = this.lastUpsellItem;
+        confirmedUpsell = this.lastUpsellItem;
         this.lastUpsellItem = null;
-        return result;
-      }
-      if (/\b(no|nope|nah|no thanks|no thank you|i'm good|im good|pass|skip|dont need|no gracias)\b/i.test(text)) {
-        result.intent = "upsell_decline";
+
+        // If the user's utterance was purely an affirmation without other items, return immediately
+        if (/^(yes|yeah|yep|sure|please|go ahead|sounds good|okay|ok|definitely|why not|add it|put it in|sí|si|claro|por favor|por supuesto|yes please|yeah add it|sure add it)[\s.!?,]*$/i.test(text.trim())) {
+          result.intent = "upsell_confirm";
+          result.upsellItem = confirmedUpsell;
+          return result;
+        }
+        // Otherwise, confirmedUpsell will be prepended to itemsFound below!
+      } else if (/\b(no|nope|nah|no thanks|no thank you|i'm good|im good|pass|skip|dont need|no gracias)\b/i.test(text)) {
         this.lastUpsellItem = null;
-        return result;
+        if (/^(no|nope|nah|no thanks|no thank you|i'm good|im good|pass|skip|dont need|no gracias)[\s.!?,]*$/i.test(text.trim())) {
+          result.intent = "upsell_decline";
+          return result;
+        }
       }
     }
 
@@ -259,7 +282,7 @@ class OrderEngine {
     }
 
     // 4. Food & Spice Questions
-    if (/\b(spicy|hot sauce|chili|pico|salsa|picante|pica|halal|pork|beef|meat)\b/i.test(text) && !/\b(order|give|add|want)\b/i.test(text)) {
+    if (/\b(spicy|hot sauce|chili|pico|salsa|picante|pica|halal|pork|beef|meat)\b/i.test(text) && !/\b(order|give|add|want|quiero)\b/i.test(text)) {
       result.intent = "food_info";
       return result;
     }
@@ -280,7 +303,7 @@ class OrderEngine {
     }
 
     // 7. View Cart Intent
-    if (/\b(cart|my order|my bag|total|what did i order|review|ver orden|mi pedido)\b/i.test(text)) {
+    if (/\b(cart|my order|my bag|total|what did i order|how much is it|review|ver orden|mi pedido|mi bolsa)\b/i.test(text)) {
       result.intent = "view_cart";
       return result;
     }
@@ -315,42 +338,67 @@ class OrderEngine {
       return result;
     }
 
-    // Multilingual Numbers
+    // Multilingual Numbers & Colloquials
     const numberWords = {
       "a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
       "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11,
-      "twelve": 12, "dozen": 12, "couple": 2,
+      "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16,
+      "twenty": 20, "couple": 2, "pair": 2, "few": 3, "dozen": 12, "half a dozen": 6, "half dozen": 6,
       "un": 1, "una": 1, "uno": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
-      "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+      "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10, "once": 11,
+      "doce": 12, "quince": 15, "veinte": 20,
       "ek": 1, "do": 2, "teen": 3, "char": 4, "paanch": 5
     };
 
-    // Dictionary of Item Matchers (Ordered by specificity: combos first, then singles)
+    // Dictionary of Item Matchers (Ordered by specificity: combos & specials first, then singles)
     const itemMatchers = [
-      // 3 Quesataco Combo
+      // 3 Quesataco Combo with Consomé & Agua
       {
         id: "item_combo_3qt",
         keys: [
-          "3 quesataco combo", "3 quesatacos combo", "quesataco combo", "quesatacos combo",
-          "three quesataco combo", "three quesatacos combo", "combo de quesatacos",
-          "combo 1", "combo one", "taco combo with agua", "quesataco with agua"
+          "3 quesataco combo", "3 quesatacos combo", "three quesataco combo", "three quesatacos combo",
+          "quesataco combo", "quesatacos combo", "combo de quesatacos", "combo 3 quesatacos",
+          "combo tres quesatacos", "3 quesatacos con agua", "quesataco with agua", "quesataco feast",
+          "combo 1", "combo one", "taco combo with agua", "combo de 3"
         ]
       },
-      // $50 Taco Box
+      // $50 Taco Box (22 Tacos + 2 Consomés)
       {
         id: "item_taco_box_50",
         keys: [
           "50 taco box", "$50 taco box", "50 dollar taco box", "fifty dollar taco box",
           "fifty dollar box", "50 dollar box", "50 box", "taco box", "caja de tacos",
-          "caja de 50", "family box", "caja familiar"
+          "caja de 50", "family box", "caja familiar", "22 tacos box", "22 taco box",
+          "box of 22 tacos", "family taco box", "party taco box"
         ]
+      },
+      // Birria Platter Ramen & 2 Qt Combo
+      {
+        id: "item_birria_platter_ramen_2qt",
+        keys: [
+          "birria platter ramen", "ramen platter", "ramen and 2 quesatacos", "ramen and two quesatacos",
+          "ramen and quesatacos combo", "ramen combo with quesatacos", "ramen combo"
+        ]
+      },
+      // King Platter Combo
+      {
+        id: "item_king_platter_combo",
+        keys: [
+          "king platter combo", "king platter", "sampler platter", "king sampler"
+        ]
+      },
+      // Foodie Box
+      {
+        id: "item_foodie_box",
+        keys: ["foodie box", "caja foodie", "foodie tasting box"]
       },
       // Birria Ramen
       {
         id: "item_ramen_birria",
         keys: [
           "birria ramen", "ramen birria", "ramen", "ramen de birria", "noodles",
-          "birria noodles", "noodle soup", "sopa ramen", "roman", "raymond"
+          "birria noodles", "noodle soup", "sopa ramen", "birria ramen bowl",
+          "ramen with birria", "roman", "raymond"
         ]
       },
       // King Birria Pizza
@@ -360,7 +408,7 @@ class OrderEngine {
           "birria pizza", "king birria pizza", "pizza de birria", "taco pizza", "pizza birria", "pizza"
         ]
       },
-      // King Fries
+      // King Fries (Loaded)
       {
         id: "item_king_fries",
         keys: [
@@ -370,30 +418,34 @@ class OrderEngine {
       // Queen Fries
       {
         id: "item_queen_fries",
-        keys: ["queen fries", "papas queen"]
+        keys: ["queen fries", "papas queen", "queen fry"]
       },
       // Birria Balls Deal (2 pcs)
       {
         id: "item_birria_balls_deal",
         keys: [
           "birria balls deal", "birria ball deal", "two birria balls", "2 birria balls",
-          "dos birria balls", "dos bolas de birria"
+          "dos birria balls", "dos bolas de birria", "birria balls"
         ]
       },
       // Birria Ball (Single)
       {
         id: "item_birria_ball",
-        keys: ["birria ball", "bola de birria", "potato ball"]
+        keys: ["single birria ball", "one birria ball", "birria ball", "bola de birria", "potato ball"]
       },
       // Birria Nachos
       {
         id: "item_birria_nachos",
         keys: ["birria nachos", "nachos de birria", "nachos"]
       },
-      // Foodie Box
+      // Bean & Cheese Burro
       {
-        id: "item_foodie_box",
-        keys: ["foodie box", "caja foodie"]
+        id: "item_bean_cheese_burro",
+        keys: [
+          "bean_and_cheese burro", "bean and cheese burro", "bean_and_cheese burrito", "bean and cheese burrito",
+          "bean burrito", "bean burro", "burro de frijol y queso", "frijol_y_queso burro", "burrito de frijol",
+          "frijol con queso burro"
+        ]
       },
       // King Burro
       {
@@ -403,13 +455,15 @@ class OrderEngine {
           "king burrito", "burro", "burrito"
         ]
       },
-      // Quesadilla
+      // Meat Quesadilla
       {
         id: "item_meat_quesadilla",
         keys: [
-          "meat quesadilla", "quesadilla de carne", "quesadilla de birria", "beef quesadilla"
+          "meat quesadilla", "quesadilla de carne", "quesadilla de birria", "beef quesadilla",
+          "steak quesadilla", "chicken quesadilla"
         ]
       },
+      // Cheese Quesadilla
       {
         id: "item_cheese_quesadilla",
         keys: ["cheese quesadilla", "quesadilla de queso", "quesadilla"]
@@ -426,10 +480,11 @@ class OrderEngine {
       {
         id: "item_quesataco_plate",
         keys: [
-          "quesataco plate", "plato de quesatacos", "orden de quesatacos", "quesataco plato"
+          "plate of quesataco", "plate of quesatacos", "quesataco plate", "plato de quesataco",
+          "plato de quesatacos", "orden de quesataco", "orden de quesatacos", "quesataco plato"
         ]
       },
-      // Quesataco (Single) - Includes broad fuzzy terms
+      // Quesataco (Single)
       {
         id: "item_quesataco_single",
         keys: [
@@ -437,11 +492,11 @@ class OrderEngine {
           "cheese taco", "cheese tacos", "quesotaco", "quesotacos", "case of tacos", "casa tacos"
         ]
       },
-      // Keto Taco
+      // Keto Taco (Cheese shell)
       {
         id: "item_keto_taco",
         keys: [
-          "keto taco", "keto tacos", "taco keto", "tacos keto", "cheese shell taco"
+          "keto taco", "keto tacos", "taco keto", "tacos keto", "cheese shell taco", "low carb taco"
         ]
       },
       // Street Taco Platter (10 pcs)
@@ -451,11 +506,12 @@ class OrderEngine {
           "street taco platter", "charola de tacos", "10 street tacos", "ten street tacos", "diez tacos"
         ]
       },
-      // Street Taco Plate
+      // Street Taco Plate (3 pcs with rice & beans)
       {
         id: "item_street_taco_plate",
         keys: [
-          "street taco plate", "plato de street tacos", "plato de tacos", "street tacos plate"
+          "plate of street taco", "plate of street tacos", "street taco plate", "plato de street tacos",
+          "plato de tacos", "street tacos plate", "taco plate", "orden de tacos"
         ]
       },
       // Street Taco (Single) / General Tacos
@@ -473,50 +529,74 @@ class OrderEngine {
           "birria de res plate", "plato de birria", "orden de birria", "birria plate", "birria de res"
         ]
       },
+      // Large Consomé (16 oz) - Matched before 8 oz cup for specificity
+      {
+        id: "item_consome_de_birria_large",
+        keys: [
+          "large consome cup", "large consome", "consome grande", "tazón de birria",
+          "16 oz consome cup", "16 oz consome", "large broth", "large dipping broth", "16 oz broth"
+        ]
+      },
       // Consomé Dipping Cup (8 oz)
       {
         id: "item_consome_cup",
         keys: [
           "consome cup", "side consome", "consomé cup", "vaso de consomé", "dipping broth",
           "8 oz consome", "consome", "consomé", "caldo de birria", "caldo", "broth", "dip",
-          "consume", "conzome", "consomme"
+          "consume", "conzome", "consomme", "cup of consome"
         ]
       },
-      // Large Consomé (16 oz)
+      // Taquitos
       {
-        id: "item_consome_de_birria_large",
+        id: "item_birria_taquitos",
         keys: [
-          "large consome", "consome grande", "tazón de birria", "16 oz consome"
+          "birria taquitos", "taquitos de birria", "taquitos", "order of taquitos", "flautas", "rolled tacos"
         ]
       },
-      // Mexican Bottle Drink
+      // Mexican Bottle Drink / Aguas / Sodas
       {
         id: "item_mexican_bottle",
         keys: [
           "mexican bottle", "mexican coke", "coca mexicana", "coke", "coca", "refresco",
-          "jarritos", "jarrito", "mexican soda", "agua fresca", "horchata", "jamaica", "soda", "drink"
+          "jarritos", "jarrito", "mexican soda", "agua fresca", "horchata", "jamaica",
+          "soda", "drink", "bottle of water", "bottled water", "water bottle", "water"
         ]
       },
       // French Fries
       {
         id: "item_side_fries",
-        keys: ["french fries", "side of fries", "papas fritas", "papas", "fries", "fry"]
+        keys: ["french fries", "side of fries", "papas fritas", "papas", "fries", "fry", "regular fries"]
       },
       // Rice
       {
         id: "item_rice",
-        keys: ["rice", "arroz", "mexican rice", "arroz mexicano"]
+        keys: ["rice", "arroz", "mexican rice", "arroz mexicano", "side of rice"]
       },
-      // Taquitos
+      // Chipotle Cream
       {
-        id: "item_birria_taquitos",
-        keys: ["birria taquitos", "taquitos de birria", "taquitos"]
+        id: "item_chipotle_cream",
+        keys: ["side of chipotle cream", "chipotle cream", "chipotle sauce", "salsa chipotle"]
+      },
+      // Sour Cream
+      {
+        id: "item_sour_cream",
+        keys: ["side of sour cream", "sour cream", "crema", "extra sour cream"]
+      },
+      // Corn Tortillas
+      {
+        id: "item_corn_tortillas",
+        keys: ["side of corn tortillas", "corn tortillas", "extra tortillas", "tortillas", "tortillas de maiz"]
+      },
+      // Flour Tortilla
+      {
+        id: "item_flour_tortilla",
+        keys: ["flour tortilla", "tortilla de harina"]
       }
     ];
 
     // Multi-Item Segment Extraction
-    // Split by punctuation, conjunctions, or transitions between items
-    const segments = text.split(/(?:,|\band\b|\by\b|\bplus\b|\bet\b|\bund\b|(?<=\w)\s+(?=(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|un|una|dos|tres|ek|do|teen)\b))/i);
+    // Split by punctuation, conjunctions, or transitions between distinct items
+    const segments = text.split(/(?:,|\band\b|\by\b|\bplus\b|\bet\b|\bund\b|(?<=\w)\s+(?=(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|couple|pair|un|una|dos|tres|cuatro|cinco|ek|do|teen)\b))/i);
 
     for (const segment of segments) {
       const cleanSeg = segment.trim();
@@ -529,8 +609,8 @@ class OrderEngine {
       for (const matcher of itemMatchers) {
         for (const key of matcher.keys) {
           const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          const keyRegex = new RegExp("(?:^|\\s)" + escaped + "(?:\\s|$)", "i");
-          if (keyRegex.test(cleanSeg) || cleanSeg === key) {
+          const keyRegex = new RegExp("(?:^|\\s)" + escaped + "(?:s|es)?(?:\\s|$)", "i");
+          if (keyRegex.test(cleanSeg) || cleanSeg === key || cleanSeg === key + "s" || cleanSeg === key + "es") {
             if (key.length > bestLen) {
               bestLen = key.length;
               bestMatcher = matcher;
@@ -542,21 +622,24 @@ class OrderEngine {
 
       if (bestMatcher) {
         // Prepare text for quantity detection:
-        // Remove embedded numerals belonging to the dish title (e.g. 50 in $50 taco box, 3 in 3 quesataco combo)
+        // Remove numerals belonging to the dish title (e.g. 50 in $50 taco box, 3 in 3 quesataco combo)
         let segForQty = cleanSeg;
         if (bestMatcher.id === "item_taco_box_50") {
           segForQty = segForQty.replace(/\b(50|\$50|fifty)\s*(dollar)?\s*(taco)?\s*(box)?\b/gi, "box");
         } else if (bestMatcher.id === "item_combo_3qt") {
-          segForQty = segForQty.replace(/\b(3|three)\s*quesataco/gi, "quesataco");
+          segForQty = segForQty.replace(/\b(3|three|tres)\s*quesataco/gi, "quesataco");
         } else if (bestMatcher.id === "item_birria_balls_deal") {
-          segForQty = segForQty.replace(/\b(2|two)\s*birria/gi, "birria");
+          segForQty = segForQty.replace(/\b(2|two|dos)\s*birria/gi, "birria");
         } else if (bestMatcher.id === "item_quesataco_platter" || bestMatcher.id === "item_street_taco_platter") {
-          segForQty = segForQty.replace(/\b(10|ten)\s*(street)?\s*taco/gi, "platter");
+          segForQty = segForQty.replace(/\b(10|ten|diez)\s*(street)?\s*taco/gi, "platter");
         }
+
+        // Clean out leading fillers like "can i get", "order of", "give me", "plates of"
+        segForQty = segForQty.replace(/\b(orders? of|orden(es)? de|plates? of|platos? de|can i get|give me|i want|i will take|i'll take|add|put|dame|quiero)\b/gi, " ");
 
         // Extract quantity
         let quantity = 1;
-        const numPattern = /(\b(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|un|una|uno|dos|tres|cuatro|cinco|seis|ek|do|teen)\b)/i;
+        const numPattern = /(\b(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|twenty|couple|pair|dozen|half a dozen|half dozen|few|un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|ek|do|teen)\b)/i;
         const numMatch = segForQty.match(numPattern);
         if (numMatch) {
           const rawNum = numMatch[1].toLowerCase();
@@ -565,7 +648,7 @@ class OrderEngine {
         }
 
         const menuItem = MENU_ITEMS.find(m => m.id === bestMatcher.id);
-        if (menuItem && !result.itemsFound.some(f => f.item.id === menuItem.id)) {
+        if (menuItem) {
           const modifiers = {};
 
           if (cleanSeg.includes("asada")) modifiers.meat = "Carne Asada";
@@ -575,17 +658,47 @@ class OrderEngine {
 
           if (cleanSeg.includes("no onion") || cleanSeg.includes("sin cebolla")) modifiers.noOnion = true;
           if (cleanSeg.includes("no cilantro") || cleanSeg.includes("sin cilantro")) modifiers.noCilantro = true;
+          if (cleanSeg.includes("no cheese") || cleanSeg.includes("sin queso")) modifiers.noCheese = true;
+          if (cleanSeg.includes("extra cheese") || cleanSeg.includes("extra queso")) modifiers.extraCheese = true;
+
+          if (cleanSeg.includes("salsa verde") || cleanSeg.includes("green salsa")) modifiers.salsa = "Salsa Verde (Mild)";
+          else if (cleanSeg.includes("salsa roja") || cleanSeg.includes("red salsa")) modifiers.salsa = "Salsa Roja (Hot)";
+
+          if (cleanSeg.includes("extra consome") || cleanSeg.includes("extra dipping") || cleanSeg.includes("with consome") || cleanSeg.includes("con consome") || cleanSeg.includes("with broth")) {
+            modifiers.extraConsome = true;
+          }
+
           if (cleanSeg.includes("horchata")) modifiers.flavor = "Horchata";
           else if (cleanSeg.includes("jamaica")) modifiers.flavor = "Jamaica (Hibiscus)";
           else if (cleanSeg.includes("jarrito")) modifiers.flavor = "Jarritos";
+          else if (cleanSeg.includes("coke") || cleanSeg.includes("coca")) modifiers.flavor = "Mexican Coke";
 
-          result.itemsFound.push({
-            item: menuItem,
-            quantity: quantity,
-            modifiers: modifiers
-          });
+          // Merge with existing match if exact same modifiers, otherwise push as customized entry!
+          const existing = result.itemsFound.find(f => 
+            f.item.id === menuItem.id && 
+            JSON.stringify(f.modifiers) === JSON.stringify(modifiers)
+          );
+
+          if (existing) {
+            existing.quantity += quantity;
+          } else {
+            result.itemsFound.push({
+              item: menuItem,
+              quantity: quantity,
+              modifiers: modifiers
+            });
+          }
         }
       }
+    }
+
+    // If an upsell was confirmed as part of a compound request, prepend it to items
+    if (confirmedUpsell) {
+      result.itemsFound.unshift({
+        item: confirmedUpsell,
+        quantity: 1,
+        modifiers: {}
+      });
     }
 
     if (result.itemsFound.length > 0) {

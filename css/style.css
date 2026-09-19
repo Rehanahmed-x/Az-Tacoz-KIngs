@@ -117,6 +117,9 @@ html {
   font-size: 16px;
   scroll-behavior: smooth;
   height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -131,6 +134,7 @@ body {
   background-attachment: fixed;
   background-repeat: no-repeat;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
@@ -156,7 +160,8 @@ button {
   cursor: pointer;
   border: none;
   background: none;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), color var(--transition-fast);
+  will-change: transform;
 }
 
 button:active {
@@ -200,7 +205,10 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  transition: all var(--transition-normal);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .brand-meta {
@@ -261,6 +269,8 @@ img {
   background: var(--success);
   box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
   animation: pulseGreen 2s infinite;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
 }
 
 @keyframes pulseGreen {
@@ -287,7 +297,8 @@ img {
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 600;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  will-change: transform;
 }
 
 .icon-btn:hover {
@@ -528,7 +539,8 @@ img {
   align-items: center;
   gap: 10px;
   box-shadow: 0 6px 20px var(--primary-glow);
-  transition: all var(--transition-normal);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  will-change: transform;
 }
 
 .btn-hero-call:hover {
@@ -547,7 +559,8 @@ img {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all var(--transition-normal);
+  transition: transform var(--transition-normal), background var(--transition-normal), border-color var(--transition-normal);
+  will-change: transform;
 }
 
 .btn-hero-menu:hover {
@@ -703,7 +716,7 @@ img {
   font-size: 13px;
   color: var(--text-main);
   outline: none;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .menu-search-input:focus {
@@ -730,6 +743,7 @@ img {
   overflow-x: auto;
   padding-bottom: 4px;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .menu-cat-tabs::-webkit-scrollbar {
@@ -745,7 +759,8 @@ img {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  will-change: transform;
   flex-shrink: 0;
 }
 
@@ -777,6 +792,11 @@ img {
   flex-direction: column;
   box-shadow: var(--shadow-card);
   transition: transform var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal);
+  content-visibility: auto;
+  contain-intrinsic-size: 320px;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .menu-card:hover {
@@ -798,6 +818,9 @@ img {
   height: 100%;
   object-fit: cover;
   transition: transform 0.5s var(--ease-smooth);
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .menu-card:hover .menu-card-media img {
@@ -885,7 +908,8 @@ img {
   align-items: center;
   gap: 6px;
   box-shadow: 0 2px 8px var(--primary-glow);
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+  will-change: transform;
 }
 
 .btn-card-add:hover {
@@ -908,6 +932,9 @@ img {
   height: calc(100vh - 110px);
   max-height: 860px;
   overflow: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* Bella AI Stage Header */
@@ -947,10 +974,13 @@ img {
   box-shadow: 0 4px 16px var(--primary-glow);
   flex-shrink: 0;
   transition: transform var(--transition-normal);
+  transform: translateZ(0);
 }
 
 .bella-avatar-ring.speaking {
   animation: pulseSpeaking 1.2s ease-in-out infinite;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
 }
 
 @keyframes pulseSpeaking {
@@ -991,6 +1021,8 @@ img {
   background: var(--gold);
   border-radius: var(--radius-full);
   animation: waveBar 0.8s ease-in-out infinite alternate;
+  transform-origin: bottom;
+  will-change: transform;
 }
 
 .soundwave-indicator span:nth-child(2) { animation-delay: 0.15s; }
@@ -998,8 +1030,8 @@ img {
 .soundwave-indicator span:nth-child(4) { animation-delay: 0.45s; }
 
 @keyframes waveBar {
-  0% { height: 4px; }
-  100% { height: 16px; }
+  0% { transform: scaleY(0.25); }
+  100% { transform: scaleY(1); }
 }
 
 /* Voice Mute Button */
@@ -1097,7 +1129,8 @@ img {
   gap: 5px;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  will-change: transform;
 }
 
 .accent-pill:hover {
@@ -1123,6 +1156,7 @@ img {
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .client-demo-bar::-webkit-scrollbar {
@@ -1147,7 +1181,8 @@ img {
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  will-change: transform;
 }
 
 .demo-chip:hover {
@@ -1166,6 +1201,7 @@ img {
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .quick-chips-wrapper::-webkit-scrollbar {
@@ -1182,7 +1218,8 @@ img {
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  will-change: transform;
 }
 
 .quick-chip:hover {
@@ -1199,6 +1236,8 @@ img {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 /* Message Rows */
@@ -1207,6 +1246,9 @@ img {
   flex-direction: column;
   max-width: 86%;
   animation: fadeInMsg 0.25s var(--ease-smooth);
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 @keyframes fadeInMsg {
@@ -1425,7 +1467,7 @@ img {
   font-size: 13.5px;
   color: var(--text-main);
   outline: none;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .chat-input:focus {
@@ -1445,7 +1487,8 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+  will-change: transform;
 }
 
 .send-action-btn:hover {
@@ -1470,6 +1513,9 @@ img {
   padding: 30px 24px;
   text-align: center;
   transition: opacity 0.35s ease, visibility 0.35s ease;
+  transform: translateZ(0);
+  will-change: opacity, visibility;
+  backface-visibility: hidden;
 }
 
 .call-screen-overlay.hidden {
@@ -1520,6 +1566,9 @@ img {
   border: 2px solid var(--primary);
   opacity: 0;
   animation: rippleGlow 2.5s cubic-bezier(0.1, 0.2, 0.3, 1) infinite;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .call-ripple:nth-child(2) { animation-delay: 0.8s; }
@@ -1599,7 +1648,8 @@ img {
   align-items: center;
   gap: 12px;
   box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
-  transition: all var(--transition-normal);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  will-change: transform;
 }
 
 .btn-start-call:hover {
@@ -1636,7 +1686,8 @@ img {
   z-index: 250;
   opacity: 0;
   visibility: hidden;
-  transition: all var(--transition-normal);
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+  will-change: opacity;
 }
 
 .cart-drawer-overlay.open {
@@ -1657,12 +1708,14 @@ img {
   z-index: 260;
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
+  transform: translate3d(100%, 0, 0);
   transition: transform var(--transition-normal);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .cart-drawer.open {
-  transform: translateX(0);
+  transform: translate3d(0, 0, 0);
 }
 
 .drawer-header {
@@ -1722,7 +1775,8 @@ img {
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  will-change: transform;
 }
 
 .fulfillment-btn.active {
@@ -1897,7 +1951,8 @@ img {
   justify-content: center;
   gap: 10px;
   box-shadow: 0 6px 20px var(--primary-glow);
-  transition: all var(--transition-normal);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  will-change: transform;
 }
 
 .checkout-btn:hover {
@@ -1921,7 +1976,8 @@ img {
   padding: 20px;
   opacity: 0;
   visibility: hidden;
-  transition: all var(--transition-normal);
+  transition: opacity var(--transition-normal), visibility var(--transition-normal);
+  will-change: opacity;
 }
 
 .modal-overlay.open {
@@ -1940,12 +1996,14 @@ img {
   flex-direction: column;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
-  transform: scale(0.95);
+  transform: scale(0.95) translateZ(0);
   transition: transform var(--transition-normal);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .modal-overlay.open .modal-card {
-  transform: scale(1);
+  transform: scale(1) translateZ(0);
 }
 
 .modal-header {
@@ -2158,7 +2216,8 @@ img {
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+  will-change: transform;
 }
 
 .call-screen-close-btn:hover {
@@ -2214,6 +2273,9 @@ img {
     z-index: 85;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   .mobile-view-tab {
@@ -2227,7 +2289,8 @@ img {
     font-size: 14px;
     font-weight: 700;
     color: var(--text-muted);
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+    will-change: transform;
     position: relative;
   }
 
@@ -2244,6 +2307,8 @@ img {
     background: var(--success);
     box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
     animation: pulseGreen 1.5s infinite;
+    transform: translateZ(0);
+    will-change: transform, box-shadow;
   }
 
   .main-app-container {
@@ -2267,6 +2332,9 @@ img {
     height: calc(100dvh - 160px);
     min-height: 540px;
     max-height: none;
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   /* Mobile Bottom Navigation Dock */
@@ -2286,6 +2354,9 @@ img {
     border-top: 1px solid var(--border-medium);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
     z-index: 220;
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   .mobile-nav-item {
@@ -2299,7 +2370,8 @@ img {
     font-weight: 700;
     padding: 4px 10px;
     border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+    will-change: transform;
     flex: 1;
     max-width: 80px;
   }
@@ -2307,6 +2379,7 @@ img {
   .mobile-nav-item .nav-icon {
     font-size: 20px;
     transition: transform var(--transition-fast);
+    will-change: transform;
   }
 
   .mobile-nav-item.active {
@@ -2334,6 +2407,8 @@ img {
     background: var(--success);
     display: none;
     box-shadow: 0 0 6px var(--success-glow);
+    transform: translateZ(0);
+    will-change: transform, box-shadow;
   }
 
   .mobile-nav-pulse.active {
@@ -2604,12 +2679,14 @@ img {
     border-radius: 24px 24px 0 0;
     max-height: 90dvh;
     padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
-    transform: translateY(100%);
+    transform: translate3d(0, 100%, 0);
     transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    will-change: transform;
+    backface-visibility: hidden;
   }
 
   .modal-overlay.open .modal-card {
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 
   .cart-drawer {
