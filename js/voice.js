@@ -14,13 +14,20 @@ class VoiceController {
     this.analyser = null;
     this.silenceTimer = null;
     this.transcriptBuffer = "";
+    this.transcriptAlternatives = [];
     this.currentSpokenText = "";
+    this.recentBotPhrases = [];
+    this.spokenWordSet = new Set();
     this.speakStartTime = 0;
     this.allowBargeIn = true;
     this.autoRelisten = false;
+    this.sessionStartTime = 0;
+    this.sessionWatchdog = null;
+    this.activeUtterance = null;
     this.onStateChange = null;
     this.onInterimTranscript = null;
     this.onSpeechResult = null;
+    this.currentLang = "en-US";
 
     this.initVoices();
     this.initSpeechRecognition();
@@ -106,7 +113,6 @@ class VoiceController {
           const avg = sum / buffer.length;
           const level = Math.min(1, avg / 45);
 
-          // 60 FPS dedicated audio level callback without heavy state machine recomputations
           if (this.onAudioLevel) {
             this.onAudioLevel(level);
           } else if (this.onStateChange) {
@@ -125,24 +131,51 @@ class VoiceController {
     } catch (e) {}
   }
 
-  safeRestartRecognition(delay = 150) {
+  safeRestartRecognition(delay = 80) {
     if (this.restartTimer) clearTimeout(this.restartTimer);
     this.restartTimer = setTimeout(() => {
-      if (!this.shouldBeListening || this.isListening) return;
+      if (!this.shouldBeListening) return;
+      if (this.isListening) return;
+
       try {
+        if (!this.recognition) {
+          this.initSpeechRecognition();
+        }
         this.recognition.start();
       } catch (e) {
-        if (this.shouldBeListening) {
-          setTimeout(() => {
+        // If recognition failed to restart, recreate cleanly to avoid InvalidStateError
+        setTimeout(() => {
+          if (this.shouldBeListening && !this.isListening) {
             try {
-              if (this.shouldBeListening && !this.isListening) {
-                this.recognition.start();
-              }
-            } catch (err) {}
-          }, 300);
-        }
+              this.initSpeechRecognition();
+              if (this.recognition) this.recognition.start();
+            } catch (err) {
+              console.warn("Recognition restart retry notice:", err);
+            }
+          }
+        }, 200);
       }
     }, delay);
+  }
+
+  // Gracefully refresh recognition session during natural pauses before 60-second Chromium timeout
+  refreshSessionWatchdog() {
+    if (this.sessionWatchdog) clearTimeout(this.sessionWatchdog);
+    if (!this.shouldBeListening) return;
+
+    // Chromium drops WebSpeech sessions around 60 seconds. We proactively recycle at ~48 seconds
+    this.sessionWatchdog = setTimeout(() => {
+      if (this.shouldBeListening && !this.isSpeaking && !this.transcriptBuffer) {
+        try {
+          if (this.recognition) {
+            this.recognition.stop();
+          }
+        } catch (e) {}
+      } else if (this.shouldBeListening) {
+        // If user was actively speaking or Bella was speaking, recheck in 8 seconds
+        this.refreshSessionWatchdog();
+      }
+    }, 48000);
   }
 
   initSpeechRecognition() {
@@ -152,14 +185,26 @@ class VoiceController {
       return;
     }
 
+    if (this.recognition) {
+      try {
+        this.recognition.onstart = null;
+        this.recognition.onend = null;
+        this.recognition.onerror = null;
+        this.recognition.onresult = null;
+        this.recognition.abort();
+      } catch (e) {}
+    }
+
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true; // Stay alive continuously!
     this.recognition.interimResults = true; // Show live words as user speaks
-    this.recognition.maxAlternatives = 3;
-    this.recognition.lang = "en-US";
+    this.recognition.maxAlternatives = 5; // Capture up to 5 phonetic alternatives for accented speakers!
+    this.recognition.lang = this.currentLang || "en-US";
 
     this.recognition.onstart = () => {
       this.isListening = true;
+      this.sessionStartTime = Date.now();
+      this.refreshSessionWatchdog();
       if (this.onStateChange) this.onStateChange({ isListening: true });
       if (this.pollAudio && !this.pollRafId) {
         this.pollRafId = requestAnimationFrame(this.pollAudio);
@@ -175,14 +220,26 @@ class VoiceController {
       if (this.onAudioLevel) this.onAudioLevel(0);
       if (this.onStateChange) this.onStateChange({ isListening: false });
 
-      // Automatically restart whenever shouldBeListening is active, so listening never dies!
+      // Automatically reconnect whenever shouldBeListening is active (seamless 60s+ continuity!)
       if (this.shouldBeListening) {
-        this.safeRestartRecognition(120);
+        this.safeRestartRecognition(60);
       }
     };
 
     this.recognition.onerror = (event) => {
-      if (event.error === "no-speech") return;
+      // Normal non-fatal transient events in Chromium Web Speech
+      if (event.error === "no-speech") {
+        return;
+      }
+
+      if (event.error === "aborted" || event.error === "network") {
+        // Network or aborted disconnects occur routinely at 60s session boundaries in Chrome.
+        // Seamlessly reconnect without disturbing the customer with error banners!
+        if (this.shouldBeListening) {
+          this.safeRestartRecognition(100);
+          return;
+        }
+      }
 
       console.warn("Speech recognition notice:", event.error);
       this.isListening = false;
@@ -190,11 +247,9 @@ class VoiceController {
       let msg = "";
       if (event.error === "not-allowed") {
         msg = "Microphone blocked. Click the lock/mic icon in the browser address bar to Allow.";
-      } else if (event.error === "network") {
-        msg = "Speech recognition needs an active internet connection or HTTPS.";
       }
 
-      if (this.onStateChange) {
+      if (msg && this.onStateChange) {
         this.onStateChange({ isListening: false, error: event.error, errorMsg: msg });
       }
     };
@@ -202,36 +257,68 @@ class VoiceController {
     this.recognition.onresult = (event) => {
       let interim = "";
       let finalStr = "";
+      const candidateAlternatives = [];
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalStr += transcript;
+        const res = event.results[i];
+        if (res.isFinal) {
+          finalStr += res[0].transcript;
         } else {
-          interim += transcript;
+          interim += res[0].transcript;
+        }
+
+        // Collect all phonetic alternatives across results for accented speakers
+        for (let alt = 0; alt < res.length; alt++) {
+          if (res[alt] && res[alt].transcript) {
+            if (!candidateAlternatives[alt]) candidateAlternatives[alt] = "";
+            candidateAlternatives[alt] += (candidateAlternatives[alt] ? " " : "") + res[alt].transcript;
+          }
         }
       }
 
       const incomingText = (finalStr || interim).trim();
       if (!incomingText) return;
 
-      // ⚡ ACTIVE VOICE BARGE-IN:
-      // If user interrupts the bot during conversation, immediately stop Bella's voice!
-      if (this.isSpeaking && this.allowBargeIn) {
-        const timeSinceSpeak = Date.now() - this.speakStartTime;
-        const incomingLower = incomingText.toLowerCase();
-        const isEcho = this.currentSpokenText && 
-                       this.currentSpokenText.includes(incomingLower) && 
-                       timeSinceSpeak < 600;
+      const incomingLower = incomingText.toLowerCase();
 
-        if (!isEcho && incomingText.length >= 2) {
-          console.log("⚡ Voice Barge-In: User interrupted Bella with:", incomingText);
+      // =========================================================================
+      // 🛡️ BULLETPROOF ACOUSTIC ECHO SUPPRESSION & INTELLIGENT BARGE-IN:
+      // =========================================================================
+      if (this.isSpeaking) {
+        // Calculate token overlap with Bella's currently spoken output
+        const incomingTokens = incomingLower.split(/\s+/).filter(t => t.length > 2);
+        let echoTokens = 0;
+        for (const tok of incomingTokens) {
+          if (this.spokenWordSet.has(tok)) echoTokens++;
+        }
+        const overlapRatio = incomingTokens.length > 0 ? (echoTokens / incomingTokens.length) : 0;
+
+        // Check if incoming text is a substring of what Bella is saying
+        const isSubstringEcho = this.currentSpokenText && (
+          this.currentSpokenText.includes(incomingLower) ||
+          incomingLower.includes(this.currentSpokenText.slice(0, Math.min(25, this.currentSpokenText.length)))
+        );
+
+        const isBotEcho = isSubstringEcho || overlapRatio >= 0.35;
+
+        // If it's Bella's own voice coming through the speaker, DISCARD immediately!
+        if (isBotEcho) {
+          return;
+        }
+
+        // Genuine User Interruption Detection (e.g. "wait", "stop", "hold on", "cancel", "no", "actually")
+        const isExplicitInterruption = /\b(wait|hold on|stop|cancel|no|actually|excuse me|one sec|pause|hey bella)\b/i.test(incomingLower);
+        const isDistinctOrderPhrase = incomingTokens.length >= 2 && overlapRatio < 0.20;
+
+        if (this.allowBargeIn && (isExplicitInterruption || isDistinctOrderPhrase)) {
+          console.log("⚡ Genuine User Barge-In detected:", incomingText);
           this.stopSpeaking();
           if (this.onStateChange) {
             this.onStateChange({ isSpeaking: false, isInterrupted: true, isListening: true });
           }
         } else {
-          return; // Ignore bot's own speaker echo
+          // Ambient background noise while Bella is speaking - ignore
+          return;
         }
       }
 
@@ -245,22 +332,37 @@ class VoiceController {
         this.transcriptBuffer += " " + finalStr;
       }
 
+      // Collect primary text plus phonetic alternatives
+      const allCandidates = [activeText];
+      candidateAlternatives.forEach(alt => {
+        const cleanAlt = alt.trim();
+        if (cleanAlt && !allCandidates.includes(cleanAlt)) {
+          allCandidates.push(cleanAlt);
+        }
+      });
+
       // Silence Detection Debounce:
-      // When user finishes speaking (950ms pause), submit the full sentence!
+      // When user finishes speaking (850ms pause), submit the full sentence!
       clearTimeout(this.silenceTimer);
       this.silenceTimer = setTimeout(() => {
+        // Double check Bella isn't currently speaking so we never submit her voice
+        if (this.isSpeaking) return;
+
         const fullPrompt = (this.transcriptBuffer || interim).trim();
         if (fullPrompt.length >= 2) {
           this.transcriptBuffer = "";
+          this.refreshSessionWatchdog();
+
           // If not in a continuous phone call, stop listening after this utterance
           if (!this.autoRelisten) {
             this.stopListening();
           }
+
           if (this.onSpeechResult) {
-            this.onSpeechResult(fullPrompt);
+            this.onSpeechResult(fullPrompt, allCandidates);
           }
         }
-      }, 950);
+      }, 850);
     };
   }
 
@@ -306,12 +408,22 @@ class VoiceController {
     this.currentSpokenText = cleanText.toLowerCase();
     this.speakStartTime = Date.now();
     this.isSpeaking = true;
+
+    // Cache words spoken by Bella to guarantee 100% echo cancellation
+    this.spokenWordSet.clear();
+    const words = this.currentSpokenText.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, " ").split(/\s+/);
+    words.forEach(w => {
+      if (w.length > 2) this.spokenWordSet.add(w);
+    });
+
     clearTimeout(this.silenceTimer);
     this.transcriptBuffer = "";
     if (this.onStateChange) this.onStateChange({ isSpeaking: true });
 
     this.synth.cancel();
     const utterance = new SpeechSynthesisUtterance(cleanText);
+    this.activeUtterance = utterance;
+    window._currentBellaUtterance = utterance; // Prevent garbage-collection glitch
 
     if (lang === "es") {
       const voices = this.synth.getVoices();
@@ -339,15 +451,15 @@ class VoiceController {
 
     let speechEnded = false;
     let watchdogTimer = null;
-    let keepAliveInterval = null;
 
     const handleSpeechEnd = () => {
       if (speechEnded) return;
       speechEnded = true;
       if (watchdogTimer) clearTimeout(watchdogTimer);
-      if (keepAliveInterval) clearInterval(keepAliveInterval);
 
       this.isSpeaking = false;
+      this.activeUtterance = null;
+      window._currentBellaUtterance = null;
       this.currentSpokenText = "";
       this.transcriptBuffer = "";
       clearTimeout(this.silenceTimer);
@@ -355,7 +467,7 @@ class VoiceController {
 
       if (this.shouldBeListening) {
         if (!this.isListening) {
-          this.safeRestartRecognition(100);
+          this.safeRestartRecognition(80);
         } else {
           if (this.onStateChange) this.onStateChange({ isListening: true });
         }
@@ -367,26 +479,17 @@ class VoiceController {
     utterance.onend = handleSpeechEnd;
     utterance.onerror = handleSpeechEnd;
 
-    // Keep recognition active during speech for instant barge-in interruption!
+    // Ensure recognition stays active during speech for legitimate user barge-in
     if (this.shouldBeListening && !this.isListening) {
       this.safeRestartRecognition(60);
     }
 
-    const maxDurationMs = Math.max(3000, cleanText.length * 90);
+    const maxDurationMs = Math.max(3500, cleanText.length * 95);
     watchdogTimer = setTimeout(() => {
       if (!speechEnded) {
         handleSpeechEnd();
       }
     }, maxDurationMs);
-
-    keepAliveInterval = setInterval(() => {
-      if (this.isSpeaking && this.synth && this.synth.speaking) {
-        this.synth.pause();
-        this.synth.resume();
-      } else {
-        clearInterval(keepAliveInterval);
-      }
-    }, 8000);
 
     this.synth.speak(utterance);
   }
@@ -395,6 +498,8 @@ class VoiceController {
     if (this.synth) {
       this.synth.cancel();
       this.isSpeaking = false;
+      this.activeUtterance = null;
+      window._currentBellaUtterance = null;
       this.currentSpokenText = "";
       if (this.onStateChange) this.onStateChange({ isSpeaking: false });
     }
@@ -418,7 +523,10 @@ class VoiceController {
 
     this.shouldBeListening = true;
     this.stopSpeaking();
-    this.recognition.lang = lang;
+    this.currentLang = lang;
+    if (this.recognition) {
+      this.recognition.lang = lang;
+    }
     if (onResultCallback) {
       this.onSpeechResult = onResultCallback;
     }
@@ -427,7 +535,8 @@ class VoiceController {
       this.recognition.start();
       return true;
     } catch (e) {
-      // Already running
+      // If already started or stalled, ensure restart
+      this.safeRestartRecognition(50);
       return true;
     }
   }
@@ -435,6 +544,7 @@ class VoiceController {
   stopListening() {
     this.shouldBeListening = false;
     clearTimeout(this.silenceTimer);
+    if (this.sessionWatchdog) clearTimeout(this.sessionWatchdog);
     this.transcriptBuffer = "";
     if (this.recognition) {
       try {

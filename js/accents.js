@@ -8,6 +8,7 @@ const ACCENTS = {
     region: "Standard US (Clear & Articulate)",
     tagline: "Crisp, natural, clear enunciation & effortless to understand",
     tts: { rate: 0.97, pitch: 1.0, lang: "en-US" },
+    recogLang: "en-US",
     greetings: [
       "Hello and welcome to Az Tacos King on Camelback Road! I'm Bella, your AI ordering assistant. What can I get started for you today?",
       "Hi there! Welcome to Birria Kingz. I'm ready to take your order whenever you're ready!",
@@ -41,6 +42,7 @@ const ACCENTS = {
     region: "Phoenix, AZ (Local Street Vibe)",
     tagline: "Warm, bilingual touches & Southwestern street taco hospitality",
     tts: { rate: 0.98, pitch: 1.01, lang: "en-US" },
+    recogLang: "en-US",
     greetings: [
       "¡Hola amigo! Welcome to Az Tacos King right here on Camelback! I'm Bella. What can I get cooking for you today, jefe?",
       "Hey what's up! Welcome to Birria Kingz! Our slow-simmered birria is smelling amazing right now. What are you craving today?",
@@ -74,6 +76,7 @@ const ACCENTS = {
     region: "Texas & Deep South",
     tagline: "Warm, hospitable, heartfelt 'y'all' charm",
     tts: { rate: 0.94, pitch: 0.96, lang: "en-US" },
+    recogLang: "en-US",
     greetings: [
       "Howdy y'all! Welcome on in to Az Tacos King! I'm Bella, and we've got the tastiest birria you ever set eyes on. What can I fix up for ya today, darlin'?",
       "Well hey there! Mighty glad you stopped by Birria Kingz today. What are you fixin' to eat?",
@@ -107,6 +110,7 @@ const ACCENTS = {
     region: "NYC & East Coast",
     tagline: "Fast, energetic, direct & full of personality",
     tts: { rate: 1.02, pitch: 1.02, lang: "en-US" },
+    recogLang: "en-US",
     greetings: [
       "Hey, how you doin'? Welcome to Az Tacos King! I'm Bella. What are we havin' today, chief? Best birria in town, guaranteed!",
       "Yo! Welcome to Birria Kingz. What's the order today, boss? Let's make it quick and delicious!",
@@ -140,6 +144,7 @@ const ACCENTS = {
     region: "West Coast / SoCal",
     tagline: "Laid-back, upbeat, breezy & enthusiastic foodie",
     tts: { rate: 0.98, pitch: 1.0, lang: "en-US" },
+    recogLang: "en-US",
     greetings: [
       "Yo, what's up! Welcome to Az Tacos King! I'm Bella. Honestly, the birria today is totally next level. What are you vibing with?",
       "Hey dude! Welcome to Birria Kingz! We've got insane quesatacos and ramen ready to roll. What are you craving?",
@@ -173,6 +178,7 @@ const ACCENTS = {
     region: "Midwest US",
     tagline: "Extra cheerful, polite, cozy & warm",
     tts: { rate: 0.96, pitch: 1.02, lang: "en-US" },
+    recogLang: "en-US",
     greetings: [
       "Well hello there! Welcome to Az Tacos King! I'm Bella. Oh boy, do we have some wonderful comfort food for ya today! What can I get ya started with?",
       "Hi there, neighbor! Welcome to Birria Kingz! It smells just delightful in here today. What can I get for ya?",
@@ -196,7 +202,110 @@ const ACCENTS = {
     checkoutPromptSpanish: "¿Listo para empacar su comida calientita?",
     thanks: "Thank you so very much! Have yourself a truly wonderful day and enjoy the food!",
     thanksSpanish: "¡Muchísimas gracias y que tenga un excelente día!",
-    voiceKeywords: ["you betcha", "oh boy", "oh geez", "don'tcha know", "alrighty", "pop"]
+    voiceKeywords: ["you betcha", "oh boy", "oh geez", "don'tcha know", "alrighty", "pop"],
+    recogLang: "en-US"
+  },
+
+  indian: {
+    id: "indian",
+    name: "Indian / South Asian English",
+    flag: "🇮🇳",
+    region: "India & South Asia",
+    tagline: "Warm, polite, articulate & fluent South Asian English",
+    tts: { rate: 0.98, pitch: 1.0, lang: "en-IN" },
+    recogLang: "en-IN",
+    greetings: [
+      "Namaste and welcome to Az Tacos King on Camelback Road! I'm Bella. What delicious tacos or birria items can I get prepared for you today?",
+      "Hello and a very warm welcome! I'm ready to take your order for fresh tacos and hot birria broth!",
+      "Welcome to Az Tacos King! Would you like to try our famous crispy quesatacos or spicy birria ramen today?"
+    ],
+    spanishGreeting: "¡Hola! Bienvenidos a Az Tacos King. Soy Bella, ¿qué desea ordenar hoy?",
+    upsellConsome: "Would you like to add our savory 8 ounce birria dipping broth for just 3 dollars? It is very flavorful!",
+    upsellConsomeSpanish: "¿Desea agregar un vasito de consomé para sopear por 3 dólares?",
+    upsellDrink: "Can I also add an ice-cold Mexican Coke or sweet traditional Horchata cold drink for you?",
+    upsellDrinkSpanish: "¿Gusta agregar una bebida mexicana bien fría?",
+    orderAffirmation: [
+      "Certainly! I have added that right to your order.",
+      "Perfect! That is a very delicious choice.",
+      "Added to your ticket! What else can I get started for you?",
+      "Done! Added directly to your cart."
+    ],
+    orderAffirmationSpanish: "¡Excelente! Agregado a su orden.",
+    cartSummaryIntro: "Here is your current order summary ticket:",
+    cartSummaryIntroSpanish: "Aquí está el resumen de su orden:",
+    checkoutPrompt: "Shall we proceed to checkout and place your order now for pickup or delivery?",
+    checkoutPromptSpanish: "¿Desea proceder a pagar y confirmar su pedido?",
+    thanks: "Thank you so very much for ordering with Az Tacos King! We are preparing your food fresh.",
+    thanksSpanish: "¡Muchísimas gracias por ordenar con Az Tacos King!",
+    voiceKeywords: ["namaste", "certainly", "bhai", "flavorful", "parcel", "cold drink"]
+  },
+
+  british: {
+    id: "british",
+    name: "British / UK English",
+    flag: "🇬🇧",
+    region: "London & UK",
+    tagline: "Polite, crisp, articulate & courteous British charm",
+    tts: { rate: 0.98, pitch: 1.0, lang: "en-GB" },
+    recogLang: "en-GB",
+    greetings: [
+      "Hello and a very warm welcome to Az Tacos King! I'm Bella, your AI ordering concierge. What can I get started for you today?",
+      "Cheers for stopping by Birria Kingz! What fancy tacos or hot dipping broth can I get sorted for you today?",
+      "Welcome to Az Tacos King! Slow-simmered birria fresh off the griddle. What would you care to order?"
+    ],
+    spanishGreeting: "¡Hola! Bienvenidos a Az Tacos King. ¿Qué le preparamos hoy?",
+    upsellConsome: "Would you care to pair that with our savory 8 ounce hot dipping broth for just 3 dollars? It's simply splendid!",
+    upsellConsomeSpanish: "¿Desea agregar un rico consomé caliente por 3 dólares?",
+    upsellDrink: "Might I also suggest a chilled Mexican bottled soda or fresh Horchata to wash it down?",
+    upsellDrinkSpanish: "¿Gusta agregar una bebida mexicana bien fría?",
+    orderAffirmation: [
+      "Brilliant! Added that right to your order.",
+      "Splendid choice! Got that on your ticket.",
+      "Right away! What else can I fetch for you?",
+      "Sorted! Put that straight into your bag."
+    ],
+    orderAffirmationSpanish: "¡Listo! Agregado a su pedido.",
+    cartSummaryIntro: "Here is the rundown of your order so far:",
+    cartSummaryIntroSpanish: "Aquí está el detalle de su pedido:",
+    checkoutPrompt: "Are you ready for us to ring this up and send it to the kitchen?",
+    checkoutPromptSpanish: "¿Listo para mandar la orden a la cocina?",
+    thanks: "Cheers and thank you ever so much for ordering with Az Tacos King! Have a lovely meal.",
+    thanksSpanish: "¡Muchísimas gracias y buen provecho!",
+    voiceKeywords: ["cheers", "brilliant", "splendid", "takeaway", "chips", "sorted"]
+  },
+
+  australian: {
+    id: "australian",
+    name: "Australian English",
+    flag: "🇦🇺",
+    region: "Australia & Oceania",
+    tagline: "Upbeat, friendly, relaxed & enthusiastic Aussie hospitality",
+    tts: { rate: 0.98, pitch: 1.0, lang: "en-AU" },
+    recogLang: "en-AU",
+    greetings: [
+      "G'day and welcome to Az Tacos King! I'm Bella. We've got legendary slow-simmered birria sizzling away. What are you keen on today, mate?",
+      "Hey there, mate! Welcome to Birria Kingz. What can I get cracking for your lunch or dinner?",
+      "G'day! Welcome to Az Tacos King. Ready to take that order whenever you're sorted!"
+    ],
+    spanishGreeting: "¡Qué tal amigo! Bienvenidos a Az Tacos King. ¿Qué se le antoja hoy?",
+    upsellConsome: "Mate, you can't miss out on our hot 8 ounce dipping broth with those tacos. Want me to throw one in for 3 bucks?",
+    upsellConsomeSpanish: "¿Le agregamos un rico consomé por 3 dólares para sopear?",
+    upsellDrink: "How about an ice-cold Mexican Coke or sweet Horchata to go with that?",
+    upsellDrinkSpanish: "¿Una rica Horchata bien fría para acompañar?",
+    orderAffirmation: [
+      "Too easy, mate! Added to your order.",
+      "Legendary pick! Sizzling that up for ya.",
+      "No worries, that's locked in! What else?",
+      "Beauty! Added straight to the bag."
+    ],
+    orderAffirmationSpanish: "¡Excelente! Listo en su carrito.",
+    cartSummaryIntro: "Here's the tally on your order so far, mate:",
+    cartSummaryIntroSpanish: "Esto es lo que llevamos en su cuenta:",
+    checkoutPrompt: "All good to lock this in and fire up the griddle, mate?",
+    checkoutPromptSpanish: "¿Listo para confirmar y mandar el pedido?",
+    thanks: "Good on ya! Thanks heaps for ordering with Az Tacos King. Enjoy the feed!",
+    thanksSpanish: "¡Muchísimas gracias amigo! Provecho.",
+    voiceKeywords: ["g'day", "mate", "too easy", "legendary", "takeaway", "chips", "good on ya"]
   }
 };
 

@@ -46,10 +46,13 @@
 
     <!-- Accent Selection Prior to Calling -->
     <div class="call-screen-accent-picker">
-      <label for="precall-accent-select">Select Bella's US English Voice & Accent:</label>
+      <label for="precall-accent-select">Select Bella's Voice Dialect (Universal Accent AI):</label>
       <select id="precall-accent-select">
         <option value="standard" selected>🇺🇸 Crystal Clear / General American (Easy to Understand)</option>
-        <option value="chicano">🌵 Southwestern / Chicano (Phoenix Local Street Vibe)</option>
+        <option value="indian">🇮🇳 Indian / South Asian English (Polite & Articulate)</option>
+        <option value="british">🇬🇧 British / UK English (Courteous & Crisp)</option>
+        <option value="australian">🇦🇺 Australian English (Upbeat & Friendly)</option>
+        <option value="chicano">🌵 Southwestern / Chicano (Phoenix Local Vibe)</option>
         <option value="southern">🤠 Southern Drawl (Texas / Deep South)</option>
         <option value="newyork">🗽 New York / East Coast (Fast & Energetic)</option>
         <option value="california">🌴 California Chill (West Coast Foodie)</option>
@@ -137,7 +140,7 @@
           <span class="accent">Ordered at the Speed of Voice.</span>
         </h2>
         <p class="hero-description">
-          Slow-simmered tender beef birria dipped in savory consomé, griddled with melted Monterey cheese. Order online or speak naturally with Bella, our AI concierge supporting 6 regional US English accents!
+          Slow-simmered tender beef birria dipped in savory consomé, griddled with melted Monterey cheese. Order online or speak naturally with Bella, our AI concierge supporting 9 global & regional English accents!
         </p>
         
         <div class="hero-stats-row">
@@ -150,8 +153,8 @@
             <span>Melty Monterey Jack</span>
           </div>
           <div class="hero-stat-pill">
-            <span class="icon">🎙️</span>
-            <span>6 US Voice Accents</span>
+            <span class="icon">🌐</span>
+            <span>Universal Accent AI</span>
           </div>
           <div class="hero-stat-pill">
             <span class="icon">⏱️</span>
@@ -197,56 +200,52 @@
     </button>
   </div>
 
-  <!-- Main Dual-Column Interactive Ordering Studio -->
-  <main class="main-app-container">
-
-    <!-- Column 1: Interactive Culinary Menu Showcase -->
-    <section id="menu-showcase-section" class="menu-showcase-column" aria-label="Restaurant Menu Showcase">
-      <div class="menu-control-panel">
-        <div class="menu-header-row">
-          <div class="menu-title-group">
-            <h2><span>🌮 Fresh Grill & Kitchen Menu</span></h2>
-            <p>Select your favorite dishes or customize proteins & toppings</p>
-          </div>
-
-          <div class="menu-search-wrapper">
-            <span class="menu-search-icon">🔍</span>
-            <input type="text" id="menu-search-input" class="menu-search-input" placeholder="Search menu (e.g. birria, ramen, horchata)...">
-          </div>
+  <!-- Main Split Presentation Arena -->
+  <main class="ordering-arena-container">
+    
+    <!-- LEFT PANE: Sticky Live Visual Menu & Live Cart Summary -->
+    <section class="menu-visual-pane" id="menu-showcase-section">
+      <div class="pane-header">
+        <div class="pane-title-group">
+          <span class="pane-tag">AUTHENTIC STREET FLAVOR</span>
+          <h2>Crafted on Camelback Road</h2>
+          <p>Tap any item to customize and add to your bag, or ask Bella to order it for you!</p>
         </div>
-
-        <!-- Category Filter Tabs -->
-        <div id="menu-cat-tabs" class="menu-cat-tabs" role="tablist">
-          <button class="menu-cat-tab active" data-cat="All Items">All Items</button>
-          <button class="menu-cat-tab" data-cat="Combos & Specials">Combos & Feasts</button>
-          <button class="menu-cat-tab" data-cat="Birria & Consomé">Birria & Consomé</button>
-          <button class="menu-cat-tab" data-cat="Tacos & Plates">Tacos & Plates</button>
-          <button class="menu-cat-tab" data-cat="Burros & Quesadillas">Burros & Pizza</button>
-          <button class="menu-cat-tab" data-cat="Sides & Appetizers">Loaded Fries & Sides</button>
-          <button class="menu-cat-tab" data-cat="Beverages & Drinks">Aguas Frescas & Drinks</button>
-        </div>
+        
+        <!-- Category Navigation Filter Tabs -->
+        <nav class="category-tabs-bar" id="category-tabs-bar" aria-label="Menu Category Filter">
+          <button class="cat-pill active" data-category="all">🔥 All Items</button>
+          <button class="cat-pill" data-category="Combos & Specials">👑 Combos</button>
+          <button class="cat-pill" data-category="Tacos & Plates">🌮 Tacos</button>
+          <button class="cat-pill" data-category="Birria & Consomé">🍜 Birria</button>
+          <button class="cat-pill" data-category="Burros & Quesadillas">🌯 Burros</button>
+          <button class="cat-pill" data-category="Sides & Appetizers">🍟 Sides</button>
+          <button class="cat-pill" data-category="Beverages & Drinks">🥤 Drinks</button>
+        </nav>
       </div>
 
-      <!-- Food Menu Cards Grid -->
-      <div id="menu-grid" class="menu-grid">
-        <!-- Dynamically rendered by JavaScript -->
+      <!-- Food Menu Cards Showcase Grid -->
+      <div id="menu-cards-grid" class="menu-cards-grid">
+        <!-- Rendered dynamically via JavaScript -->
       </div>
     </section>
 
-    <!-- Column 2: Bella AI Voice Concierge Studio & Chat Arena -->
-    <aside class="voice-concierge-column" aria-label="Bella AI Voice & Chat Assistant">
+    <!-- RIGHT PANE: Interactive Bella AI Concierge Assistant -->
+    <aside class="bella-assistant-pane" id="bella-assistant-pane" aria-label="Bella AI Voice Concierge">
       
-      <!-- Bella AI Stage Header -->
-      <div class="bella-stage">
-        <div class="bella-profile-row">
-          <div class="bella-avatar-meta">
-            <div id="bella-avatar-ring" class="bella-avatar-ring">
-              <span>👩‍🍳</span>
+      <!-- Assistant Header & Persona Meta -->
+      <div class="bella-header-card">
+        <div class="bella-persona-bar">
+          <div class="persona-identity">
+            <div id="bella-avatar-ring" class="bella-avatar-ring" title="Bella - AI Voice Assistant">
+              <span class="avatar-emoji">👩‍🍳</span>
+              <span class="status-indicator-dot online"></span>
             </div>
-            <div class="bella-title-text">
-              <h2>
-                <span>Bella AI Concierge</span>
-                <div id="soundwave-indicator" class="soundwave-indicator" title="Speaking">
+            <div class="persona-text">
+              <h2 class="persona-name">
+                <span>Bella AI</span>
+                <span class="verified-badge" title="Official Az Tacos King Bot">✓</span>
+                <div id="soundwave-indicator" class="soundwave-indicator" title="Speaking Waveform">
                   <span></span><span></span><span></span><span></span>
                 </div>
               </h2>
@@ -261,6 +260,12 @@
           </div>
         </div>
 
+        <!-- Universal English Accent Comprehension Badge -->
+        <div class="universal-accent-badge" title="Bella seamlessly understands Indian, British, Australian, Hispanic, and Regional US English accents">
+          <span class="sparkle-icon">🌐</span>
+          <span class="badge-text"><strong>Universal Accent AI:</strong> Understands all English accents easily (Indian, UK, Aussie, Chicano, US & Global)</span>
+        </div>
+
         <!-- Live Voice Status Banner -->
         <div id="live-voice-badge" class="live-voice-badge" style="display: none;">
           <span class="live-voice-dot"></span>
@@ -272,11 +277,23 @@
           <canvas id="audio-visualizer-canvas" class="audio-visualizer-canvas" width="220" height="28"></canvas>
         </div>
 
-        <!-- USA Regional English Accent Switcher Strip -->
-        <div class="accent-selector-strip" aria-label="Select US English Accent Dialect">
+        <!-- USA & Global English Accent Switcher Strip -->
+        <div class="accent-selector-strip" aria-label="Select English Accent Dialect">
           <button class="accent-pill active" data-accent="standard" title="Crystal Clear / General American (Easy to Understand)">
             <span>🇺🇸</span>
             <span>Crystal Clear</span>
+          </button>
+          <button class="accent-pill" data-accent="indian" title="Indian / South Asian English">
+            <span>🇮🇳</span>
+            <span>Indian / South Asian</span>
+          </button>
+          <button class="accent-pill" data-accent="british" title="British / UK English">
+            <span>🇬🇧</span>
+            <span>British</span>
+          </button>
+          <button class="accent-pill" data-accent="australian" title="Australian English">
+            <span>🇦🇺</span>
+            <span>Australian</span>
           </button>
           <button class="accent-pill" data-accent="chicano" title="Phoenix Local / Southwestern">
             <span>🌵</span>
@@ -288,11 +305,11 @@
           </button>
           <button class="accent-pill" data-accent="newyork" title="New York / East Coast">
             <span>🗽</span>
-            <span>New York / East Coast</span>
+            <span>New York</span>
           </button>
           <button class="accent-pill" data-accent="california" title="California Chill">
             <span>🌴</span>
-            <span>California Chill</span>
+            <span>California</span>
           </button>
           <button class="accent-pill" data-accent="midwest" title="Midwestern Friendly">
             <span>🌾</span>
@@ -303,12 +320,12 @@
 
       <!-- Client Demo Presentation Shortcuts Bar -->
       <div class="client-demo-bar" aria-label="One-tap Client Presentation Shortcuts">
-        <span class="demo-tag">🎯 Demo Tests:</span>
+        <span class="demo-tag">🎯 Accent & Voice Tests:</span>
         <button class="demo-chip" data-speak="Can I get 3 Quesatacos and a Consomé">🌮 "3 Quesatacos & Consomé"</button>
-        <button class="demo-chip" data-speak="Yeah sure, add that dipping broth">✅ "Yes, add consomé"</button>
-        <button class="demo-chip" data-speak="Wait, remove the ramen please">🛑 "Remove ramen" (Interrupt)</button>
+        <button class="demo-chip" data-speak="Can I get tree quesatacos and cold drink for parcel">🇮🇳 "Tree quesatacos parcel" (Indian)</button>
+        <button class="demo-chip" data-speak="Could I have two birria ramen and king chips for takeaway please">🇬🇧 "Ramen & chips takeaway" (British)</button>
+        <button class="demo-chip" data-speak="Wait, remove the ramen please">🛑 "Wait remove ramen" (Interrupt)</button>
         <button class="demo-chip" data-speak="Give me a 50 Dollar Taco Box and Horchata">📦 "$50 Taco Box"</button>
-        <button class="demo-chip" data-speak="Do you deliver and how long does it take">🚗 "Do you deliver?"</button>
         <button class="demo-chip" data-speak="That is all, ready to checkout">💳 "Ready to checkout"</button>
       </div>
 

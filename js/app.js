@@ -195,7 +195,8 @@ document.addEventListener("DOMContentLoaded", () => {
       micErrorToast.style.display = "none";
       voiceController.requestMicPermission().then(granted => {
         if (granted) {
-          voiceController.startListening(transcript => handleUserSubmit(transcript));
+          const accent = getActiveAccent();
+          voiceController.startListening((transcript, alternatives) => handleUserSubmit(transcript, alternatives), accent.recogLang || "en-US");
         }
       });
     });
@@ -395,9 +396,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // Speak greeting and immediately start listening for customer's response!
         voiceController.speak(accent.greetings[0], accent, "en", () => {
           if (isCallActive) {
-            voiceController.startListening(transcript => {
-              if (transcript) handleUserSubmit(transcript);
-            });
+            voiceController.startListening((transcript, alternatives) => {
+              if (transcript) handleUserSubmit(transcript, alternatives);
+            }, accent.recogLang || "en-US");
           }
         });
 
@@ -507,6 +508,11 @@ document.addEventListener("DOMContentLoaded", () => {
       bellaSubtext.innerText = `${accent.name} • ${accent.tagline}`;
       voiceController.playPop(620, 0.06);
 
+      if (voiceController.isListening && voiceController.recognition) {
+        voiceController.currentLang = accent.recogLang || "en-US";
+        voiceController.recognition.lang = accent.recogLang || "en-US";
+      }
+
       const randomGreeting = accent.greetings[Math.floor(Math.random() * accent.greetings.length)];
       appendBellaMessage(randomGreeting, { accentTag: accent.name });
       voiceController.speak(randomGreeting, accent);
@@ -585,11 +591,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (voiceController.isListening) {
       voiceController.stopListening();
     } else {
-      voiceController.startListening((transcript) => {
+      const accent = getActiveAccent();
+      voiceController.startListening((transcript, alternatives) => {
         if (transcript) {
-          handleUserSubmit(transcript);
+          handleUserSubmit(transcript, alternatives);
         }
-      });
+      }, accent.recogLang || "en-US");
     }
   });
 
@@ -597,13 +604,13 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCartUI(summary);
   });
 
-  function handleUserSubmit(userText) {
+  function handleUserSubmit(userText, candidateAlternatives = []) {
     appendUserMessage(userText);
     showTypingIndicator();
 
     setTimeout(() => {
       removeTypingIndicator();
-      processBotResponse(userText);
+      processBotResponse(userText, candidateAlternatives);
     }, 400);
   }
 
@@ -709,9 +716,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // =======================================================
   // SUPER-EFFICIENT & MULTILINGUAL RESPONSE PROCESSOR
   // =======================================================
-  function processBotResponse(userText) {
+  function processBotResponse(userText, candidateAlternatives = []) {
     const accent = getActiveAccent();
-    const parsed = orderEngine.parseUserMessage(userText);
+    const parsed = orderEngine.parseUserMessage(userText, candidateAlternatives);
     const isSpanish = parsed.lang === "es";
 
     // 0. CONVERSATIONAL UPSELL CONFIRMATION (Handles "yes", "sure", "add it")
